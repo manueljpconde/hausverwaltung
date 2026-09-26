@@ -1024,6 +1024,7 @@
     "addOwner": "Atribuir condómino",
     "noOwners": "Ainda sem condóminos atribuídos.",
     "share": "Quota da fração (‰)",
+    "validFrom": "Proprietário desde",
     "totalMea": "Permilagem total",
     "meaTotalLabel": "Permilagem total alvo (‰)",
     "meaCheck": "Verificação da permilagem",

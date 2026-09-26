@@ -93,15 +93,11 @@ export async function ChargeDialog({ leases }: { leases: Opt[] }) {
       action={createCharge}
       submitLabel={t("common.create")}
     >
-      <SelectField
-        name="leaseId"
-        label={t("leases.title")}
-        options={[{ value: "", label: t("common.none") }, ...leases]}
-      />
+      <SelectField name="leaseId" label={t("leases.title")} options={leases} />
       <SelectField
         name="type"
         label={t("fields.type")}
-        options={await opts("chargeType", ["MIETE", "NEBENKOSTEN", "HAUSGELD", "KAUTION", "SONSTIGES"])}
+        options={await opts("chargeType", ["MIETE", "NEBENKOSTEN", "KAUTION", "SONSTIGES"])}
       />
       <div className="grid grid-cols-2 gap-4">
         <TextField name="period" label={t("finances.period")} type="date" defaultValue={today()} />

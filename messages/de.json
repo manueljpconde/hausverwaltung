@@ -953,6 +953,7 @@
     "addOwner": "Eigentümer zuordnen",
     "noOwners": "Noch keine Eigentümer zugeordnet.",
     "share": "Anteil an Einheit (‰)",
+    "validFrom": "Eigentümer seit",
     "totalMea": "Summe MEA",
     "meaTotalLabel": "Soll-Summe MEA (‰)",
     "meaCheck": "MEA-Prüfung",

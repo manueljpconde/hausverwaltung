@@ -26,7 +26,7 @@ type Def = {
   update?: z.ZodTypeAny; // fehlt → nicht aktualisierbar
   relations?: Record<string, string>; // Feld → Delegate für Tenant-Prüfung
   custom?: boolean; // Json-Feld `custom` erlaubt
-  special?: "lease" | "resolution" | "agenda" | "user" | "payment";
+  special?: "lease" | "resolution" | "agenda" | "user" | "payment" | "owner";
   upsertBy?: string[]; // Felder für Upsert-Where (statt create)
 };
 
@@ -41,7 +41,7 @@ export const REGISTRY: Record<string, Def> = {
   meter: { model: "meter", create: S.meterSchema, relations: { unitId: "unit" } },
   reading: { model: "meterReading", create: S.readingSchema, relations: { meterId: "meter" } },
   person: { model: "person", create: S.personSchema, update: S.personSchema, custom: true },
-  owner: { model: "owner", create: S.ownerSchema, relations: { personId: "person", unitId: "unit" } },
+  owner: { model: "owner", create: S.ownerSchema, relations: { personId: "person", unitId: "unit" }, special: "owner" },
   lease: {
     model: "lease",
     create: S.leaseCreateSchema,
@@ -167,6 +167,12 @@ export async function apiCreate(p: ApiPrincipal, entity: string, body: Record<st
       create: { ...data, tenantId, ...(customData ? { custom: customData } : {}) },
       update: updateData,
     });
+    return { id: row.id };
+  }
+
+  if (def.special === "owner") {
+    // #52: neue Eigentümer sind immer CONFIRMED (DB-Default ohnehin CONFIRMED).
+    const row = await db.owner.create({ data: { ...data, tenantId, vigencia: "CONFIRMED" } });
     return { id: row.id };
   }
 

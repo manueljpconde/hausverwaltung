@@ -953,6 +953,7 @@
     "addOwner": "Assign owner",
     "noOwners": "No owners assigned yet.",
     "share": "Share of unit (‰)",
+    "validFrom": "Owner since",
     "totalMea": "Total MEA",
     "meaTotalLabel": "Target total MEA (‰)",
     "meaCheck": "MEA check",
