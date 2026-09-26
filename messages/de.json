@@ -695,6 +695,7 @@
     "seedAccounts": "Standard-Kontenrahmen anlegen",
     "manualCharge": "Sollstellung (manuell)",
     "recordPayment": "Zahlung erfassen",
+    "partiallyApplied": "{applied} € zugeordnet, {unapplied} € bleiben unzugeordnet",
     "mandates": "SEPA-Mandate",
     "newMandate": "Neues Mandat",
     "noMandates": "Keine Mandate.",

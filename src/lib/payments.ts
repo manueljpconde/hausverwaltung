@@ -88,3 +88,25 @@ export async function openChargesForMatching(tenantId: string, db: PrismaClient 
   });
   return charges.map((c) => ({ id: c.id, open: chargeBalance(c).open })).filter((c) => c.open > 0.005);
 }
+
+// Automatischer Abgleich (camt/Bank-Sync): exakter Betrag, jeder Treffer nur einmal.
+export function matchOpenCharge(open: { id: string; open: number }[], amount: number): string | null {
+  const hit = open.find((o) => o.open > 0 && Math.abs(o.open - amount) < 0.005);
+  if (!hit) return null;
+  hit.open = 0;
+  return hit.id;
+}
+
+export function unappliedPart(amount: number, allocated: number, chargeId?: string | null) {
+  const unapplied = Math.round((amount - allocated) * 100) / 100;
+  return chargeId && unapplied > 0.005 ? { applied: allocated, unapplied } : null;
+}
+
+// Finanzhistorie einer Sollstellung: Zahlungen oder Mahnungen → nicht löschen (bis voidCharge, Release 2).
+export async function chargeHasHistory(tenantId: string, chargeId: string, db: PrismaClient = prisma) {
+  const [allocations, dunnings] = await Promise.all([
+    db.paymentAllocation.count({ where: { tenantId, chargeId } }),
+    db.dunningNotice.count({ where: { tenantId, chargeId } }),
+  ]);
+  return allocations + dunnings > 0;
+}

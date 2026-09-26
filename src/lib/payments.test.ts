@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, it } from "vitest";
 import { createTestTenant, describeDb, integrationDb as db } from "./test-db";
-import { deletePaymentWithAllocations, openChargesForMatching, PaymentError, recordPayment } from "./payments";
+import { chargeHasHistory, deletePaymentWithAllocations, openChargesForMatching, PaymentError, recordPayment } from "./payments";
 
 let t: Awaited<ReturnType<typeof createTestTenant>>;
 let chargeId: string;
@@ -96,5 +96,11 @@ describeDb("recordPayment (#52)", () => {
     const refund = await pay(150, { direction: "AUSGANG" });
     expect(await deletePaymentWithAllocations(t.tenantId, refund.paymentId, db!)).toBe(1);
     expect(await db!.paymentAllocation.count({ where: { paymentId: refund.paymentId } })).toBe(0);
+  });
+
+  it("chargeHasHistory: Zahlung oder Mahnung zählt", async () => {
+    expect(await chargeHasHistory(t.tenantId, chargeId, db!)).toBe(false);
+    await db!.dunningNotice.create({ data: { tenantId: t.tenantId, chargeId, level: 1 } });
+    expect(await chargeHasHistory(t.tenantId, chargeId, db!)).toBe(true);
   });
 });

@@ -766,6 +766,7 @@
     "seedAccounts": "Criar plano de contas predefinido",
     "manualCharge": "Cobrança (manual)",
     "recordPayment": "Registar pagamento",
+    "partiallyApplied": "{applied} € aplicados, {unapplied} € ficam por aplicar",
     "mandates": "Mandatos SEPA",
     "newMandate": "Novo mandato",
     "noMandates": "Sem mandatos.",

@@ -695,6 +695,7 @@
     "seedAccounts": "Create default chart of accounts",
     "manualCharge": "Charge (manual)",
     "recordPayment": "Record payment",
+    "partiallyApplied": "{applied} € applied, {unapplied} € left unapplied",
     "mandates": "SEPA mandates",
     "newMandate": "New mandate",
     "noMandates": "No mandates.",

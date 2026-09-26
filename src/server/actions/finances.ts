@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireWriter } from "@/lib/rbac";
 import {
@@ -19,6 +20,7 @@ import { simplePdf } from "@/lib/pdf";
 import { saveFile } from "@/lib/storage";
 import { money } from "@/lib/format";
 import { dunningDocument } from "@/lib/dunning";
+import { chargeHasHistory, deletePaymentWithAllocations, matchOpenCharge, openChargesForMatching, PaymentError, recordPayment, unappliedPart } from "@/lib/payments";
 
 // Standard-Kontenrahmen für den Mandanten anlegen (idempotent).
 export async function seedDefaultAccounts(): Promise<void> {
@@ -69,7 +71,9 @@ export async function createCharge(_p: ActionState, fd: FormData): Promise<Actio
 }
 export async function deleteCharge(fd: FormData): Promise<void> {
   const user = await requireWriter();
-  await prisma.charge.deleteMany({ where: { id: String(fd.get("id") ?? ""), tenantId: user.tenantId } });
+  const id = String(fd.get("id") ?? "");
+  if (await chargeHasHistory(user.tenantId, id)) throw new Error("Sollstellung mit Zahlungen oder Mahnungen kann nicht gelöscht werden");
+  await prisma.charge.deleteMany({ where: { id, tenantId: user.tenantId } });
   revalidatePath("/", "layout");
 }
 
@@ -118,17 +122,24 @@ export async function createPayment(_p: ActionState, fd: FormData): Promise<Acti
   const user = await requireWriter();
   const r = paymentSchema.safeParse(Object.fromEntries(fd));
   if (!r.success) return fail(r.error.issues[0]?.message);
-  // Zugehörigkeit prüfen (Charge/Account des Mandanten)
-  if (r.data.chargeId) {
-    const c = await prisma.charge.findFirst({ where: { id: r.data.chargeId, tenantId: user.tenantId }, select: { id: true } });
-    if (!c) return fail("Sollstellung nicht gefunden");
+  let res;
+  try {
+    res = await recordPayment({ ...r.data, tenantId: user.tenantId });
+  } catch (e) {
+    if (e instanceof PaymentError) return fail(e.message);
+    throw e;
   }
-  await prisma.payment.create({ data: { ...r.data, tenantId: user.tenantId } });
+  // Überzahlung: gebucht, aber nur bis zum offenen Betrag zugeordnet — dem Nutzer sagen, was übrig bleibt.
+  const rest = unappliedPart(r.data.amount, res.allocated, r.data.chargeId);
+  if (rest) {
+    const t = await getTranslations("finances");
+    return { ok: true, error: t("partiallyApplied", { applied: rest.applied.toFixed(2), unapplied: rest.unapplied.toFixed(2) }) };
+  }
   return done();
 }
 export async function deletePayment(fd: FormData): Promise<void> {
   const user = await requireWriter();
-  await prisma.payment.deleteMany({ where: { id: String(fd.get("id") ?? ""), tenantId: user.tenantId } });
+  await deletePaymentWithAllocations(user.tenantId, String(fd.get("id") ?? ""));
   revalidatePath("/", "layout");
 }
 
@@ -185,36 +196,20 @@ export async function importCamt(_p: ActionState, fd: FormData): Promise<ActionS
   if (entries.length === 0) return fail("Keine Buchungen in der Datei");
 
   // offene Beträge je Sollstellung für Auto-Matching
-  const charges = await prisma.charge.findMany({
-    where: { tenantId: user.tenantId },
-    include: { payments: { select: { amount: true } } },
-  });
-  const openMap = charges.map((c) => ({
-    id: c.id,
-    open: Number(c.amount) - c.payments.reduce((a, p) => a + Number(p.amount), 0),
-  }));
+  const open = await openChargesForMatching(user.tenantId);
 
   let matched = 0;
   for (const e of entries) {
-    let chargeId: string | null = null;
-    if (e.direction === "EINGANG") {
-      const hit = openMap.find((o) => o.open > 0 && Math.abs(o.open - e.amount) < 0.005);
-      if (hit) {
-        chargeId = hit.id;
-        hit.open = 0; // verbraucht
-        matched++;
-      }
-    }
-    await prisma.payment.create({
-      data: {
-        tenantId: user.tenantId,
-        accountId,
-        chargeId,
-        date: new Date(e.date),
-        amount: e.amount,
-        direction: e.direction,
-        reference: e.reference,
-      },
+    const chargeId = e.direction === "EINGANG" ? matchOpenCharge(open, e.amount) : null;
+    if (chargeId) matched++;
+    await recordPayment({
+      tenantId: user.tenantId,
+      accountId,
+      chargeId,
+      date: new Date(e.date),
+      amount: e.amount,
+      direction: e.direction,
+      reference: e.reference,
     });
   }
   revalidatePath("/", "layout");

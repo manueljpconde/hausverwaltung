@@ -6,6 +6,7 @@ import { sendMail, type MailAttachment } from "@/lib/adapters/mailer";
 import { readFile, saveFile } from "@/lib/storage";
 import { parseCamt053 } from "@/lib/adapters/bankImport";
 import { isEInvoice, parseEInvoice } from "@/lib/adapters/erechnung";
+import { matchOpenCharge, openChargesForMatching, recordPayment } from "@/lib/payments";
 
 // Dedizierte Operationen (kein reines CRUD) für REST-API + MCP.
 // Fachlogik gespiegelt aus den Server Actions, aber Bearer-Auth statt Session.
@@ -209,16 +210,12 @@ export const OPERATIONS: Record<string, Op> = {
         throw new ApiWriteError("camt.053 konnte nicht gelesen werden", 400);
       }
       if (entries.length === 0) throw new ApiWriteError("Keine Buchungen in der Datei", 400);
-      const charges = await prisma.charge.findMany({ where: { tenantId: p.tenantId }, include: { payments: { select: { amount: true } } } });
-      const openMap = charges.map((c) => ({ id: c.id, open: Number(c.amount) - c.payments.reduce((x, pay) => x + Number(pay.amount), 0) }));
+      const open = await openChargesForMatching(p.tenantId);
       let matched = 0;
       for (const e of entries) {
-        let chargeId: string | null = null;
-        if (e.direction === "EINGANG") {
-          const hit = openMap.find((o) => o.open > 0 && Math.abs(o.open - e.amount) < 0.005);
-          if (hit) { chargeId = hit.id; hit.open = 0; matched++; }
-        }
-        await prisma.payment.create({ data: { tenantId: p.tenantId, accountId, chargeId, date: new Date(e.date), amount: e.amount, direction: e.direction, reference: e.reference } });
+        const chargeId = e.direction === "EINGANG" ? matchOpenCharge(open, e.amount) : null;
+        if (chargeId) matched++;
+        await recordPayment({ tenantId: p.tenantId, accountId, chargeId, date: new Date(e.date), amount: e.amount, direction: e.direction, reference: e.reference });
       }
       return { imported: entries.length, matched };
     },

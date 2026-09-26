@@ -9,6 +9,7 @@ import { requireRole, requireWriter } from "@/lib/rbac";
 import { encryptSecret, decryptSecret } from "@/lib/crypto";
 import * as eb from "@/lib/adapters/enablebanking";
 import type { ActionState } from "@/lib/schemas";
+import { matchOpenCharge, openChargesForMatching, recordPayment } from "@/lib/payments";
 
 async function originUrl() {
   const h = await headers();
@@ -114,14 +115,7 @@ export async function syncBankLink(fd: FormData): Promise<ActionState> {
   }
 
   // Offene Sollstellungen für Auto-Zuordnung (wie camt.053-Import).
-  const charges = await prisma.charge.findMany({
-    where: { tenantId: user.tenantId },
-    include: { payments: { select: { amount: true } } },
-  });
-  const openMap = charges.map((c) => ({
-    id: c.id,
-    open: Number(c.amount) - c.payments.reduce((a, p) => a + Number(p.amount), 0),
-  }));
+  const open = await openChargesForMatching(user.tenantId);
 
   let imported = 0;
   let matched = 0;
@@ -131,26 +125,17 @@ export async function syncBankLink(fd: FormData): Promise<ActionState> {
     // Dedup: bereits importierte externe Transaktion überspringen.
     const dup = await prisma.payment.findFirst({ where: { tenantId: user.tenantId, externalId: m.externalId }, select: { id: true } });
     if (dup) continue;
-    let chargeId: string | null = null;
-    if (m.direction === "EINGANG") {
-      const hit = openMap.find((o) => o.open > 0 && Math.abs(o.open - m.amount) < 0.005);
-      if (hit) {
-        chargeId = hit.id;
-        hit.open = 0;
-        matched++;
-      }
-    }
-    await prisma.payment.create({
-      data: {
-        tenantId: user.tenantId,
-        accountId: link.accountId,
-        chargeId,
-        date: new Date(m.date),
-        amount: m.amount,
-        direction: m.direction,
-        reference: m.reference,
-        externalId: m.externalId,
-      },
+    const chargeId = m.direction === "EINGANG" ? matchOpenCharge(open, m.amount) : null;
+    if (chargeId) matched++;
+    await recordPayment({
+      tenantId: user.tenantId,
+      accountId: link.accountId,
+      chargeId,
+      date: new Date(m.date),
+      amount: m.amount,
+      direction: m.direction,
+      reference: m.reference,
+      externalId: m.externalId,
     });
     imported++;
   }
