@@ -1,24 +1,15 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { KeyRound, Copy, Check } from "lucide-react";
-import { createApiToken, revokeApiToken, deleteApiToken, type TokenState } from "@/server/actions/tokens";
+import { createApiToken, revokeApiToken, deleteApiToken, type TokenRow, type TokenState } from "@/server/actions/tokens";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
-type Tok = {
-  id: string;
-  name: string;
-  prefix: string;
-  userName: string;
-  createdAt: string;
-  lastUsedAt: string | null;
-  revoked: boolean;
-};
 type Opt = { value: string; label: string };
 
 export function ApiTokensManager({
@@ -26,13 +17,23 @@ export function ApiTokensManager({
   users,
   isAdmin,
 }: {
-  tokens: Tok[];
+  tokens: TokenRow[];
   users: Opt[];
   isAdmin: boolean;
 }) {
   const t = useTranslations();
   const [state, action, pending] = useActionState<TokenState, FormData>(createApiToken, {});
   const [copied, setCopied] = useState(false);
+  const [list, setList] = useState(tokens);
+
+  useEffect(() => {
+    setList(tokens);
+  }, [tokens]);
+
+  useEffect(() => {
+    if (!state.created) return;
+    setList((prev) => [state.created!, ...prev.filter((tok) => tok.id !== state.created!.id)]);
+  }, [state.created]);
 
   return (
     <Card>
@@ -98,9 +99,9 @@ export function ApiTokensManager({
         {state.error && <p className="text-sm text-destructive">{state.error}</p>}
 
         {/* Liste */}
-        {tokens.length > 0 && (
+        {list.length > 0 && (
           <div className="space-y-2">
-            {tokens.map((tok) => (
+            {list.map((tok) => (
               <div key={tok.id} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm">
                 <div className="min-w-0">
                   <div className="font-medium">
