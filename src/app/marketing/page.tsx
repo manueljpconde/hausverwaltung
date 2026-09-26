@@ -70,7 +70,8 @@ export default async function MarketingPage() {
             playLabel={t("video.play")}
             controlsClassName="absolute bottom-4 right-4 z-10 rounded border border-white/80 bg-black/50 px-3 py-1 text-xs"
           />
-          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black/85 via-black/70 to-black/40" />
+          {/* Kontrast: unter 1024 px läuft der Text über die volle Breite → gleichmäßig dunkel. */}
+          <div className="absolute inset-0 -z-10 bg-black/75 lg:bg-transparent lg:bg-gradient-to-r lg:from-black/85 lg:via-black/70 lg:to-black/40" />
           <div className="mx-auto max-w-6xl px-4 py-24 md:py-32">
             <h1 className="max-w-2xl text-3xl font-bold leading-tight md:text-5xl">{t("hero.title")}</h1>
             <p className="mt-4 max-w-2xl text-lg">{t("hero.subtitle")}</p>

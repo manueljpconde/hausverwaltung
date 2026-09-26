@@ -61,4 +61,9 @@ describe("/marketing (#33)", () => {
     const css = read("src/app/marketing/landing.css");
     expect(css).toMatch(/\.landing \.cw-btn\.cw-btn-light\s*\{[^}]*background:\s*#ffffff/);
   });
+
+  it("Hero-Kontrast: gleichmäßig dunkel unter 1024 px, Verlauf erst ab lg", () => {
+    const page = read("src/app/marketing/page.tsx");
+    expect(page).toContain('className="absolute inset-0 -z-10 bg-black/75 lg:bg-transparent lg:bg-gradient-to-r lg:from-black/85 lg:via-black/70 lg:to-black/40"');
+  });
 });
