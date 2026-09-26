@@ -2,7 +2,7 @@ import { getTranslations, getLocale } from "next-intl/server";
 import { ChevronLeft, ChevronRight, Wrench, Gavel, CalendarDays } from "lucide-react";
 import { requireUser } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
-import { date } from "@/lib/format";
+import { date, toBcp47 } from "@/lib/format";
 import { getDateLocale } from "@/lib/date-locale";
 import { Link } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -83,14 +83,16 @@ export default async function CalendarPage({
 
   const prev = month === 0 ? { year: year - 1, month: 11 } : { year, month: month - 1 };
   const next = month === 11 ? { year: year + 1, month: 0 } : { year, month: month + 1 };
-  const monthName = new Intl.DateTimeFormat(locale === "de" ? "de-DE" : "en-US", {
+  const monthName = new Intl.DateTimeFormat(toBcp47(locale), {
     month: "long",
     year: "numeric",
   }).format(new Date(Date.UTC(year, month, 1)));
-  const weekdays =
-    locale === "de"
-      ? ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
-      : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  // Monday-first week labels via Intl (matches DE calendar layout)
+  const weekdays = Array.from({ length: 7 }, (_, i) =>
+    new Intl.DateTimeFormat(toBcp47(locale), { weekday: "short" }).format(
+      new Date(Date.UTC(2024, 0, 1 + i)), // 2024-01-01 was Monday
+    ),
+  );
 
   const kindDot = (k: CalEvent["kind"]) =>
     k === "maintenance" ? "bg-amber-500" : k === "meeting" ? "bg-violet-500" : "bg-primary";

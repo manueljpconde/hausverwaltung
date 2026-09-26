@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const labels: Record<string, string> = { de: "Deutsch", en: "English" };
+const labels: Record<string, string> = { de: "Deutsch", en: "English", pt: "Português" };
 
 export function LanguageSwitcher() {
   const t = useTranslations();

@@ -971,7 +971,7 @@
     "actualTotal": "Ist-Kosten gesamt",
     "noActual": "Keine Ist-Kosten (Kostenpositionen) für dieses Jahr.",
     "createWegCta": "Objekt anlegen oder bearbeiten",
-    "noWegHint": "Verwaltungsart „WEG“ am Objekt setzen, dann hierher zurück."
+    "noWegHint": "Verwaltungsart „{type}“ am Objekt setzen, dann hierher zurück."
   },
   "assistant": {
     "title": "KI-Assistent",

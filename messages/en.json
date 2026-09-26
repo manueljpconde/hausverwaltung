@@ -971,7 +971,7 @@
     "actualTotal": "Total actual cost",
     "noActual": "No actual costs (cost items) for this year.",
     "createWegCta": "Create or edit a property",
-    "noWegHint": "Set Management type to HOA / WEG on the property, then return here."
+    "noWegHint": "Set Management type to {type} on the property, then return here."
   },
   "assistant": {
     "title": "AI assistant",

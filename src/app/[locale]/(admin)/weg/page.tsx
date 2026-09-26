@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { money } from "@/lib/format";
 import { allocate, type AllocationParticipant } from "@/lib/allocation";
 import { checkMeaTotal } from "@/lib/weg-validation";
+import { managementTypeMessageKey } from "@/lib/market";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,11 +33,18 @@ export default async function WegPage({
   const locale = await getLocale();
   const tenantId = user.tenantId;
 
-  const wegProps = await prisma.property.findMany({
-    where: { tenantId, management: "WEG" },
-    orderBy: { createdAt: "asc" },
-    select: { id: true, name: true, meaTotal: true },
-  });
+  const [wegProps, tenant] = await Promise.all([
+    prisma.property.findMany({
+      where: { tenantId, management: "WEG" },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, meaTotal: true },
+    }),
+    prisma.tenant.findUnique({ where: { id: tenantId }, select: { market: true } }),
+  ]);
+  const market = tenant?.market ?? "DE";
+  const mgmtNs = managementTypeMessageKey(market);
+  const pageTitle = market === "PT" ? t("nav.condominio") : t("weg.title");
+  const typeLabel = t(`${mgmtNs}.WEG`);
 
   const propertyId = sp.propertyId || wegProps[0]?.id;
   const year = Number(sp.year) || new Date().getFullYear();
@@ -46,12 +54,12 @@ export default async function WegPage({
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{t("weg.title")}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{pageTitle}</h1>
           <p className="text-sm text-muted-foreground">{t("weg.subtitle")}</p>
         </div>
         <div className="space-y-3 rounded-lg border border-dashed p-6">
           <p className="text-sm text-muted-foreground">{t("weg.noWeg")}</p>
-          <p className="text-xs text-muted-foreground">{t("weg.noWegHint")}</p>
+          <p className="text-xs text-muted-foreground">{t("weg.noWegHint", { type: typeLabel })}</p>
           <Button size="sm" render={<Link href="/properties" />}>
             {t("weg.createWegCta")}
           </Button>
@@ -102,7 +110,7 @@ export default async function WegPage({
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{t("weg.title")}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{pageTitle}</h1>
           <p className="text-sm text-muted-foreground">{t("weg.subtitle")}</p>
         </div>
         {actualTotal > 0 && (
