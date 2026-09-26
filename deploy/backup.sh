@@ -38,7 +38,8 @@ docker compose "${FILES[@]}" exec -T db pg_dump -U havewa -Fc havewa > "$BACKUP_
 mv "$BACKUP_DIR/havewa-$STAMP.dump.partial" "$BACKUP_DIR/havewa-$STAMP.dump"
 
 echo "==> archiving storage"
-docker compose "${FILES[@]}" exec -T app tar -C /app/storage -czf - . > "$BACKUP_DIR/havewa-$STAMP.storage.tar.gz.partial"
+# Wegwerf-Container statt exec: funktioniert auch, wenn die App gestoppt ist oder crasht.
+docker compose "${FILES[@]}" run --rm --no-deps -T --entrypoint tar app -C /app/storage -czf - . > "$BACKUP_DIR/havewa-$STAMP.storage.tar.gz.partial"
 mv "$BACKUP_DIR/havewa-$STAMP.storage.tar.gz.partial" "$BACKUP_DIR/havewa-$STAMP.storage.tar.gz"
 
 echo "==> pruning local backups older than $KEEP_DAYS days"

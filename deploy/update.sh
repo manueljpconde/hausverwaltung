@@ -17,6 +17,7 @@ FILES=(-f docker-compose.registry.yml)
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 cd "$DIR"
+[[ -f .env ]] || { echo "fehlt: $DIR/.env (siehe .env.prod.example)" >&2; exit 1; }
 PREV="$(grep -E '^HAVEWA_TAG=' .env | cut -d= -f2- || true)"
 
 echo "==> backing up before update"
@@ -31,6 +32,21 @@ echo "==> pulling image"
 docker compose "${FILES[@]}" pull app
 echo "==> restarting app"
 docker compose "${FILES[@]}" up -d app
+
+# Migrationen laufen beim Start; schlagen sie fehl, startet die App in einer Schleife neu.
+echo "==> waiting for app to answer HTTP"
+for _ in $(seq 1 60); do
+  if docker compose "${FILES[@]}" exec -T app node -e 'fetch("http://localhost:3000/",{redirect:"manual"}).then(r=>process.exit(r.status<500?0:1),()=>process.exit(1))' 2>/dev/null; then
+    HEALTHY=1; break
+  fi
+  sleep 2
+done
+if [[ -z "${HEALTHY:-}" ]]; then
+  docker compose "${FILES[@]}" logs --tail 50 app >&2
+  echo "FEHLER: App antwortet nicht nach 120 s. Image zurück: bash $HERE/update.sh ${PREV:-<previous-tag>}; Daten zurück: bash $HERE/restore.sh <stamp von oben>" >&2
+  exit 1
+fi
+
 echo "==> pruning dangling images"
 docker image prune -f
 echo "==> done. Image zurück: bash $HERE/update.sh ${PREV:-<previous-tag>} — Daten zurück (nach Migration): bash $HERE/restore.sh <stamp von oben>"

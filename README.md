@@ -173,6 +173,9 @@ default `/opt/havewa`):
 | `DB_PASSWORD` | Postgres password (Compose builds `DATABASE_URL` from it) |
 | `AUTH_SECRET` | Session secret (`openssl rand -base64 32`) |
 | `DOMAIN` | Domain for Caddy/HTTPS (DNS must point to the server) |
+| `HAVEWA_TAG` | Image tag, **required** by `docker-compose.registry.yml` (e.g. `sha-abc1234`); set by `deploy/update.sh` |
+| `HAVEWA_IMAGE` | Image repository (default `ghcr.io/manueljpconde/hausverwaltung`) |
+| `BACKUP_DIR` · `BACKUP_KEEP_DAYS` · `BACKUP_RSYNC_TARGET` · `BACKUP_RSYNC_SSH` | `deploy/backup.sh` target dir (default `backups/`), local retention (default 14), optional off-site rsync target and its SSH command (default `ssh -p 23`). Shell env, not `.env`. |
 
 #### Optional first-run bootstrap (all optional)
 
