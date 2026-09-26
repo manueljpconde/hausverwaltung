@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { preload } from "react-dom";
 import { getTranslations } from "next-intl/server";
+import { UserRound } from "lucide-react";
 import { APP_NAME, BRAND_LOGO_URL } from "@/lib/brand";
 import { SOURCE_URL } from "@/lib/version";
 import { listBackgroundVideos } from "@/lib/videos";
@@ -45,9 +46,12 @@ export default async function MarketingPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <Link href="/marketing" aria-label={APP_NAME}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={BRAND_LOGO_URL} alt={APP_NAME} className="h-8 w-auto" />
+            <img src={BRAND_LOGO_URL} alt={APP_NAME} className="h-6 w-auto sm:h-8" />
           </Link>
-          <nav className="flex items-center gap-4 text-sm">
+          <nav className="flex items-center gap-2 text-sm sm:gap-4">
+            <Link href="/pt/login" aria-label={t("nav.login")} className="inline-flex size-10 shrink-0 items-center justify-center rounded sm:hidden">
+              <UserRound aria-hidden="true" className="size-6" />
+            </Link>
             <Link href="/pt/login" className="hidden underline-offset-4 hover:underline sm:inline">
               {t("nav.login")}
             </Link>

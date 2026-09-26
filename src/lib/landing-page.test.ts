@@ -85,4 +85,17 @@ describe("/marketing (#33)", () => {
     expect(page).toContain('import { preload } from "react-dom"');
     expect(page).toMatch(/preload\(poster, \{ as: "image", fetchPriority: "high", imageSrcSet: `\$\{posterSmall\} 800w, \$\{poster\} 1280w`, imageSizes: "100vw" \}\)/);
   });
+
+  it("Kopfzeile: Login auf dem Telefon als Symbol mit Namen, ab sm als Text", () => {
+    const page = read("src/app/marketing/page.tsx");
+    const header = page.slice(page.indexOf("<header"), page.indexOf("</header>"));
+    // Telefon: Symbol-Link, zugänglicher Name, Ziel ≥ 40 px
+    const icon = header.match(/<Link href="\/pt\/login" aria-label=\{t\("nav\.login"\)\} className="([^"]*)">/)?.[1] ?? "";
+    expect(icon.split(" ")).toEqual(expect.arrayContaining(["sm:hidden", "size-10", "shrink-0"]));
+    expect(header).toMatch(/<UserRound aria-hidden="true"/);
+    // ab 640 px: Textlink wie bisher
+    expect(header).toMatch(/<Link href="\/pt\/login" className="hidden[^"]*sm:inline[^"]*">/);
+    // Platz für das Symbol: kleineres Logo auf dem Telefon
+    expect(header).toContain('className="h-6 w-auto sm:h-8"');
+  });
 });
