@@ -50,3 +50,18 @@ describe("Produktname aus einer Quelle (#18)", () => {
     expect(hits).toEqual([]);
   });
 });
+
+describe("Seitentitel und -beschreibung je Sprache (#18)", () => {
+  it("Layout baut Titel aus APP_NAME + übersetztem Tagline, Beschreibung übersetzt", () => {
+    const layout = stripComments(read("src/app/[locale]/layout.tsx"));
+    expect(layout).toContain("generateMetadata");
+    expect(layout).toContain('t("tagline")');
+    expect(layout).toContain('t("description")');
+    expect(layout).not.toMatch(/Hausverwaltung|Immobilienverwaltung/);
+    for (const locale of ["de", "en", "pt"]) {
+      const app = JSON.parse(read(`messages/${locale}.json`)).app;
+      expect(app.tagline).toBeTruthy();
+      expect(app.description).toBeTruthy();
+    }
+  });
+});

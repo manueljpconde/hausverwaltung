@@ -1,6 +1,7 @@
 {
   "app": {
-    "tagline": "Gestão imobiliária"
+    "tagline": "Gestão imobiliária",
+    "description": "Gestão imobiliária para arrendamentos e condomínios"
   },
   "about": {
     "title": "Acerca do {app}",
