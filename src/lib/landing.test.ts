@@ -41,6 +41,7 @@ describe("Landing-Inhalt (#33)", () => {
     expect(text).not.toMatch(/assistente de IA|integraç/i);
     expect(text).not.toMatch(/conformidade|compliant|certificad|RGPD|BUILT/i);
     expect(text).not.toMatch(/todas as alterações/);
+    expect(text).not.toMatch(/[—–]/); // keine Gedankenstriche im Text
   });
 
   it("Marke nur über {app}, nie als fester Name", () => {
