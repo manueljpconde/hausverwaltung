@@ -19,6 +19,79 @@
     "license": "Licença (AGPL-3.0)",
     "notice": "Aviso legal"
   },
+  "landing": {
+    "meta": {
+      "title": "{app} — Gestão de arrendamentos e condomínios",
+      "description": "Imóveis, frações, contratos, quotas e assembleias num só sistema, com portal para inquilinos e condóminos."
+    },
+    "skip": "Saltar para o conteúdo",
+    "nav": {
+      "login": "Iniciar sessão",
+      "contact": "Fale connosco"
+    },
+    "hero": {
+      "title": "Arrendamentos e condomínios, num só sistema.",
+      "subtitle": "Imóveis, frações, contratos, quotas e assembleias organizados num só lugar — com portal para inquilinos e condóminos.",
+      "fit": "Para gestores de arrendamento e administradores de condomínios — use apenas as áreas de que precisa.",
+      "cta": "Fale connosco sobre a gestão imobiliária",
+      "secondary": "Ver funcionalidades"
+    },
+    "video": {
+      "pause": "Pausar vídeo",
+      "play": "Reproduzir vídeo"
+    },
+    "features": {
+      "title": "Funcionalidades",
+      "rental": {
+        "title": "Arrendamento",
+        "p1": "Imóveis, frações e contratos",
+        "p2": "Rendas e valores em aberto",
+        "p3": "Cobrança com débito direto SEPA"
+      },
+      "condo": {
+        "title": "Condomínio",
+        "p1": "Permilagem e quotas",
+        "p2": "Fundo comum de reserva",
+        "p3": "Assembleias com ordem de trabalhos e votações"
+      },
+      "operations": {
+        "title": "Operações",
+        "p1": "Pedidos de manutenção e prestadores",
+        "p2": "Documentos organizados",
+        "p3": "Calendário de prazos"
+      },
+      "portal": {
+        "title": "Portal",
+        "p1": "Inquilinos e condóminos comunicam avarias e acompanham os pedidos",
+        "p2": "Consultam valores em aberto e histórico de pagamentos",
+        "p3": "Acedem às deliberações e documentos"
+      }
+    },
+    "product": {
+      "title": "O produto",
+      "alt": "Painel da aplicação com imóveis em arrendamento e em condomínio, rendas, valores em aberto e pedidos",
+      "caption": "Painel com arrendamentos e condomínios, rendas, valores em aberto e pedidos — dados de demonstração."
+    },
+    "trust": {
+      "title": "Porquê {app}",
+      "hosting": "Servidores na Alemanha (União Europeia)",
+      "access": "Acessos por perfil e registo de auditoria das alterações",
+      "language": "Interface em português de Portugal",
+      "openSource": "Código aberto (AGPL-3.0)",
+      "openSourceLink": "Ver o código",
+      "api": "API REST e servidor MCP, com token pessoal, para ligar ferramentas e assistentes de IA aos seus dados"
+    },
+    "closing": {
+      "title": "Vamos falar sobre a sua gestão imobiliária?",
+      "cta": "Fale connosco sobre a gestão imobiliária"
+    },
+    "footer": {
+      "copyright": "© 2026 {app}",
+      "legal": "Aviso legal",
+      "source": "Código-fonte",
+      "login": "Iniciar sessão"
+    }
+  },
   "common": {
     "search": "Pesquisar",
     "loading": "A carregar…",
