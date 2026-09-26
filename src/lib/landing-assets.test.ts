@@ -26,4 +26,11 @@ describe("Landing-Assets (#33)", () => {
       expect(statSync(poster).size, v).toBeLessThanOrEqual(150 * 1024);
     }
   });
+
+  it("Dashboard-Screenshot existiert als WebP ≤ 200 KB", () => {
+    const shot = pub("/brand/crmware/landing/dashboard.webp");
+    expect(existsSync(shot)).toBe(true);
+    expect(statSync(shot).size).toBeLessThanOrEqual(200 * 1024);
+    expect(readFileSync(shot).subarray(8, 12).toString()).toBe("WEBP");
+  });
 });

@@ -132,8 +132,8 @@ faturação/SAF-T/e-fatura, IMI).
    - "API REST e servidor MCP, com token pessoal, para ligar ferramentas e assistentes de IA aos
      seus dados" — verified by a functional test (see Testing). No product names (the MCP server
      uses a bearer token; e.g. ChatGPT connectors expect OAuth), and no "read-only" claim for the
-     REST API, which also writes (`src/lib/api-write.ts`, `/api/v1/operations`). The MCP tools
-     are read-only.
+     REST API, which also writes (`src/lib/api-write.ts`, `/api/v1/operations`). The MCP server exposes read and write tools (e.g. `create_record`,
+     `run_operation`), so the page makes no read-only claim for either.
 6. **Closing band:** "Vamos falar sobre a sua gestão imobiliária?" + button "Fale connosco sobre a
    gestão imobiliária".
 7. **Footer:** "© 2026 {APP_NAME}", "Aviso legal" (`/pt/legal`), "Código-fonte"
