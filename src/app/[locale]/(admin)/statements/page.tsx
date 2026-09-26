@@ -21,6 +21,7 @@ import { deleteCost } from "@/server/actions/costs";
 import { StatementActions } from "@/components/statement-actions";
 import { ExplainStatement } from "@/components/explain-statement";
 import { Link } from "@/i18n/navigation";
+import { showHeatingCostNotes } from "@/lib/market";
 
 export default async function StatementsPage({
   searchParams,
@@ -33,11 +34,14 @@ export default async function StatementsPage({
   const locale = await getLocale();
   const tenantId = user.tenantId;
 
-  const properties = await prisma.property.findMany({
-    where: { tenantId },
-    orderBy: { createdAt: "asc" },
-    select: { id: true, name: true },
-  });
+  const [properties, tenant] = await Promise.all([
+    prisma.property.findMany({
+      where: { tenantId },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true },
+    }),
+    prisma.tenant.findUnique({ where: { id: tenantId }, select: { market: true } }),
+  ]);
 
   const propertyId = sp.propertyId || properties[0]?.id;
   const year = Number(sp.year) || new Date().getFullYear();
@@ -140,7 +144,10 @@ export default async function StatementsPage({
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <div>
             <CardTitle className="text-base">{t("statements.result")}</CardTitle>
-            <p className="text-xs text-muted-foreground">{t("statements.hint")}</p>
+            <p className="text-xs text-muted-foreground">
+              {t("statements.hint")}
+              {showHeatingCostNotes(tenant?.market) && <> {t("statements.heatingHint")}</>}
+            </p>
           </div>
           {propertyId && lines.length > 0 && (
             <div className="flex flex-wrap gap-2">

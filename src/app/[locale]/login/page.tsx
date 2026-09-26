@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
-import { Check, Building2, ShieldCheck } from "lucide-react";
+import { Check, Building2 } from "lucide-react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { needsSetup } from "@/lib/setup";
@@ -69,10 +69,7 @@ export default async function LoginPage() {
           </ul>
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-white/70">
-          <ShieldCheck className="size-4" />
-          © 2026 {APP_NAME} · DSGVO- &amp; GoBD-orientiert
-        </div>
+        <div className="text-xs text-white/70">© 2026 {APP_NAME}</div>
 
         {/* Produkt-Icon unten rechts im Video-Bereich */}
         {/* eslint-disable-next-line @next/next/no-img-element */}

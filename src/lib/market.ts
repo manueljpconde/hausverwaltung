@@ -15,3 +15,8 @@ export function managementTypeMessageKey(market: TenantMarket): "managementType"
 export function wegNavKey(market: TenantMarket): "nav.weg" | "nav.condominio" {
   return market === "PT" ? "nav.condominio" : "nav.weg";
 }
+
+/** Heizkosten-Hinweise beziehen sich auf die deutsche HeizkostenV — im PT-Markt nicht anwendbar (#25). */
+export function showHeatingCostNotes(market: TenantMarket | null | undefined): boolean {
+  return market !== "PT";
+}

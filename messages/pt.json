@@ -259,7 +259,7 @@
     "error": "Email ou palavra-passe inválidos",
     "demoHint": "Demo: admin@havewa.app / admin",
     "tagline": "Arrendamento e condomínio num só sistema.",
-    "point1": "Acertos de despesas segundo BetrKV e HeizkostenV",
+    "point1": "Acertos de despesas com chaves de repartição e contadores",
     "point2": "Contas anuais de condomínio, assembleias e fundos de reserva",
     "point3": "Portais de inquilinos/condóminos e assistente de IA",
     "demoTitle": "Acessos de demonstração"
@@ -274,7 +274,7 @@
     "label": "Designação",
     "area": "Área (m²)",
     "rooms": "Divisões",
-    "mea": "Permilagem / quota de compropriedade (MEA)",
+    "mea": "Permilagem / quota de compropriedade",
     "firstName": "Nome próprio",
     "lastName": "Apelido",
     "email": "Email",
@@ -653,7 +653,7 @@
       "label": "Designação",
       "area": "Área",
       "rooms": "Divisões",
-      "mea": "MEA"
+      "mea": "Permilagem"
     }
   },
   "zensus": {
@@ -763,7 +763,7 @@
     "consumptionShare": "Quota de consumo % (apenas aquecimento/AQS)",
     "defaultsTitle": "Predefinições do acerto",
     "heatingShare": "Quota de consumo de aquecimento %",
-    "heatingShareHint": "HeizkostenV: quota dos custos de aquecimento/AQS por consumo (resto por área). Predefinição 70%, permitido 50–100. Substituível por item de custo; 100% = apenas por consumo medido.",
+    "heatingShareHint": "Quota dos custos de aquecimento/AQS por consumo (resto por área). Predefinição 70%, permitido 50–100. Substituível por item de custo; 100% = apenas por consumo medido.",
     "save": "Guardar",
     "saved": "Guardado",
     "result": "Resultado do acerto",
@@ -774,7 +774,8 @@
     "arrears": "Débito",
     "total": "Total imputável",
     "noUnits": "O imóvel não tem frações.",
-    "hint": "Saldo positivo = crédito (reembolso), negativo = débito. Os custos de aquecimento e AQS são repartidos segundo a HeizkostenV alemã: 30% por área, 70% por consumo medido.",
+    "hint": "Saldo positivo = crédito (reembolso), negativo = débito.",
+    "heatingHint": "Os custos de aquecimento e AQS são repartidos em parte pela área e em parte pelo consumo medido.",
     "bookCharges": "Lançar débitos",
     "mailTenants": "Email aos inquilinos",
     "charged": "Débitos lançados como cobranças.",
@@ -950,10 +951,10 @@
     "addOwner": "Atribuir condómino",
     "noOwners": "Ainda sem condóminos atribuídos.",
     "share": "Quota da fração (‰)",
-    "totalMea": "MEA total",
-    "meaTotalLabel": "MEA total alvo (‰)",
-    "meaCheck": "Verificação MEA",
-    "meaMismatch": "A soma das permilagens das frações difere do valor alvo do imóvel. Corrija a MEA das frações ou o valor alvo.",
+    "totalMea": "Permilagem total",
+    "meaTotalLabel": "Permilagem total alvo (‰)",
+    "meaCheck": "Verificação da permilagem",
+    "meaMismatch": "A soma das permilagens das frações difere do valor alvo do imóvel. Corrija a permilagem das frações ou o valor alvo.",
     "plan": "Orçamento",
     "setPlan": "Definir orçamento",
     "planTotal": "Custo total (orçamento)",
@@ -1002,7 +1003,7 @@
   },
   "audit": {
     "title": "Registo de auditoria",
-    "subtitle": "Rastreabilidade de todas as alterações (GoBD)",
+    "subtitle": "Rastreabilidade de todas as alterações",
     "empty": "Ainda sem entradas.",
     "time": "Hora",
     "user": "Utilizador",
@@ -1062,7 +1063,7 @@
   },
   "print": {
     "printPdf": "Imprimir / PDF",
-    "heatingNote": "Os custos de aquecimento e água quente foram repartidos segundo a HeizkostenV alemã: 30% pela área habitável e 70% pelo consumo medido.",
+    "heatingNote": "Os custos de aquecimento e água quente foram repartidos em parte pela área habitável e em parte pelo consumo medido.",
     "reminderTitle": "Lembrete de pagamento",
     "dunningTitle": "Aviso de cobrança",
     "dunningIntro": "o seguinte montante continua em aberto para a fração {unit}:",
