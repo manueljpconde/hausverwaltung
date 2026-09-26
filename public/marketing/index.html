@@ -282,10 +282,10 @@ footer.site{padding:70px 0 40px;border-top:1px solid var(--border);background:va
 .foot-col a:hover,.foot-col button.linklike:hover{color:var(--pine)}
 .foot-bottom{border-top:1px solid var(--border);padding-top:26px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
 .foot-bottom .lic{font-size:13.5px;color:var(--muted)}
-.by-gilde{display:inline-flex;align-items:center;gap:9px;font-size:15px;font-weight:700;color:var(--ink);background:var(--surface);
+.by-credit{display:inline-flex;align-items:center;gap:9px;font-size:15px;font-weight:700;color:var(--ink);background:var(--surface);
   border:1px solid var(--border-strong);padding:10px 18px;border-radius:12px;box-shadow:var(--shadow-sm);transition:transform .18s,border-color .18s,color .18s;}
-.by-gilde:hover{transform:translateY(-2px);border-color:var(--pine);color:var(--pine)}
-.by-gilde svg{width:16px;height:16px;color:var(--brass)}
+.by-credit:hover{transform:translateY(-2px);border-color:var(--pine);color:var(--pine)}
+.by-credit svg{width:16px;height:16px;color:var(--brass)}
 
 /* ============ Reveal on scroll ============ */
 .reveal{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s ease}
@@ -307,7 +307,6 @@ footer.site{padding:70px 0 40px;border-top:1px solid var(--border);background:va
       <a href="#ki" data-i18n="nav.ki">KI-Assistent</a>
       <a href="#mcp" data-i18n="nav.mcp">KI-Steuerung</a>
       <a href="#faq" data-i18n="nav.faq">FAQ</a>
-      <a href="https://fgilde.github.io/hausverwaltung/docs/" data-i18n="nav.docs">Dokumentation</a>
     </nav>
     <div class="nav-right">
       <button class="icon-btn" id="langToggle" aria-label="Sprache wechseln" data-i18n-aria="aria.lang" title="Deutsch / English">
@@ -644,11 +643,9 @@ footer.site{padding:70px 0 40px;border-top:1px solid var(--border);background:va
         <a href="#einssystem" data-i18n="foot.sol1">Mietverwaltung</a>
         <a href="#einssystem" data-i18n="foot.sol2">WEG-Verwaltung</a>
         <a href="#screenshots" data-i18n="foot.sol3">Betriebskostenabrechnung</a>
-        <a href="https://github.com/fgilde/hausverwaltung#deployment" data-i18n="foot.sol4">Self-Hosting</a>
       </div>
       <div class="foot-col">
         <h5 data-i18n="foot.col3">Ressourcen</h5>
-        <a href="https://fgilde.github.io/hausverwaltung/docs/" data-i18n="foot.docs">Dokumentation &amp; Hilfe</a>
         <a href="#faq" data-i18n="foot.res1">FAQ</a>
         <button class="linklike js-demo" type="button" data-i18n="foot.res3">Demo starten</button>
         <a href="#top" data-i18n="foot.res4">Nach oben</a>
@@ -656,9 +653,9 @@ footer.site{padding:70px 0 40px;border-top:1px solid var(--border);background:va
     </div>
     <div class="foot-bottom">
       <span class="lic" data-i18n="foot.lic">© 2026 HaVeWa · Next.js · PostgreSQL · Docker · Server in der EU</span>
-      <a class="by-gilde" href="https://www.gilde.org" target="_blank" rel="noopener">
+      <a class="by-credit" href="https://crmware.pt" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.4H22l-6 4.4 2.3 7.2L12 16.6 5.7 21l2.3-7.2-6-4.4h7.6z"/></svg>
-        by gilde.org
+        by CRMware
       </a>
     </div>
   </div>
@@ -673,7 +670,7 @@ footer.site{padding:70px 0 40px;border-top:1px solid var(--border);background:va
     'doc.desc':'HaVeWa ist die moderne Software für Miet- und WEG-Verwaltung: Betriebskostenabrechnung, HeizkostenV 30/70, WEG-Jahresabrechnung, Versammlungen, Finanzen, Portale und KI-Assistent, DSGVO- und GoBD-orientiert.',
     'brand.sub':'Hausverwaltung',
     'aria.lang':'Sprache wechseln','aria.theme':'Farbschema wechseln','aria.menu':'Menü öffnen',
-    'nav.func':'Funktionen','nav.shots':'Screenshots','nav.ki':'KI-Assistent','nav.mcp':'KI-Steuerung','nav.preise':'Preise','nav.faq':'FAQ','nav.docs':'Dokumentation',
+    'nav.func':'Funktionen','nav.shots':'Screenshots','nav.ki':'KI-Assistent','nav.mcp':'KI-Steuerung','nav.preise':'Preise','nav.faq':'FAQ',
     'btn.demo':'Demo starten',
     'hero.badge':'Miet- &amp; WEG-Verwaltung in einem System',
     'hero.h1':'Ihre Immobilien&shy;verwaltung, <em>klar, konform, komplett.</em>',
@@ -738,8 +735,8 @@ footer.site{padding:70px 0 40px;border-top:1px solid var(--border);background:va
     'cta.h2':'Bereit für eine ruhigere Verwaltung?','cta.p':'Starten Sie Ihre kostenlose Demo, in wenigen Minuten eingerichtet, ohne Risiko.',
     'foot.tagline':'Die moderne Software für Miet- und WEG-Verwaltung. Ein System für Objekte, Finanzen, Abrechnungen und Eigentümer, DSGVO- und GoBD-orientiert.',
     'foot.col1':'Produkt','foot.col2':'Lösungen','foot.col3':'Ressourcen',
-    'foot.sol1':'Mietverwaltung','foot.sol2':'WEG-Verwaltung','foot.sol3':'Betriebskostenabrechnung','foot.sol4':'Self-Hosting',
-    'foot.res1':'FAQ','foot.res3':'Demo starten','foot.res4':'Nach oben','foot.docs':'Dokumentation & Hilfe',
+    'foot.sol1':'Mietverwaltung','foot.sol2':'WEG-Verwaltung','foot.sol3':'Betriebskostenabrechnung',
+    'foot.res1':'FAQ','foot.res3':'Demo starten','foot.res4':'Nach oben',
     'foot.lic':'© 2026 HaVeWa · Next.js · PostgreSQL · Docker · Server in der EU',
   };
   D.en={
@@ -747,7 +744,7 @@ footer.site{padding:70px 0 40px;border-top:1px solid var(--border);background:va
     'doc.desc':'HaVeWa is the modern software for rental and condominium (HOA) management: service-charge statements, HeizkostenV 30/70, annual condominium statements, owners’ meetings, finances, portals and an AI assistant, GDPR- and GoBD-oriented.',
     'brand.sub':'Property Management',
     'aria.lang':'Switch language','aria.theme':'Toggle colour scheme','aria.menu':'Open menu',
-    'nav.func':'Features','nav.shots':'Screenshots','nav.ki':'AI Assistant','nav.mcp':'AI control','nav.preise':'Pricing','nav.faq':'FAQ','nav.docs':'Documentation',
+    'nav.func':'Features','nav.shots':'Screenshots','nav.ki':'AI Assistant','nav.mcp':'AI control','nav.preise':'Pricing','nav.faq':'FAQ',
     'btn.demo':'Start demo',
     'hero.badge':'Rental &amp; condominium management in one system',
     'hero.h1':'Your property management, <em>clear, compliant, complete.</em>',
@@ -812,8 +809,8 @@ footer.site{padding:70px 0 40px;border-top:1px solid var(--border);background:va
     'cta.h2':'Ready for calmer property management?','cta.p':'Start your free demo, set up in minutes, no risk.',
     'foot.tagline':'The modern software for rental and condominium management. One system for properties, finances, statements and owners, GDPR- and GoBD-oriented.',
     'foot.col1':'Product','foot.col2':'Solutions','foot.col3':'Resources',
-    'foot.sol1':'Rental management','foot.sol2':'Condominium management','foot.sol3':'Service-charge statement','foot.sol4':'Self-hosting',
-    'foot.res1':'FAQ','foot.res3':'Start demo','foot.res4':'Back to top','foot.docs':'Documentation & help',
+    'foot.sol1':'Rental management','foot.sol2':'Condominium management','foot.sol3':'Service-charge statement',
+    'foot.res1':'FAQ','foot.res3':'Start demo','foot.res4':'Back to top',
     'foot.lic':'© 2026 HaVeWa · Next.js · PostgreSQL · Docker · Servers in the EU',
   };
 
@@ -863,9 +860,7 @@ footer.site{padding:70px 0 40px;border-top:1px solid var(--border);background:va
   });});
 
   document.querySelectorAll('.js-demo').forEach(function(b){b.addEventListener('click',function(){
-    // Auf der GitHub-Page (statisch) gibt es keine App → zur echten Instanz.
-    var base=location.hostname.endsWith('github.io')?'https://havewa.app':'';
-    location.href=base+'/'+lang+'/login';
+    location.href='/'+lang+'/login';
   });});
 
   /* ---- Reveal ---- */
