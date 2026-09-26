@@ -8,7 +8,7 @@ import { listBackgroundVideos } from "@/lib/videos";
 import { BackgroundVideo } from "@/components/background-video";
 import { LoginForm } from "@/components/login-form";
 import { oidcConfigFromEnv } from "@/lib/sso";
-import { APP_VERSION_LABEL, APP_VERSION_FULL } from "@/lib/version";
+import { APP_VERSION_LABEL, APP_VERSION_FULL, SOURCE_URL, LICENSE_URL } from "@/lib/version";
 
 export default async function LoginPage() {
   if (await needsSetup()) redirect("/setup");
@@ -124,9 +124,18 @@ export default async function LoginPage() {
             </div>
           )}
 
-          <p className="text-center text-xs text-muted-foreground" title={APP_VERSION_FULL}>
-            {APP_VERSION_LABEL}
-          </p>
+          <div className="space-y-1 text-center text-xs text-muted-foreground">
+            <p title={APP_VERSION_FULL}>{APP_VERSION_LABEL}</p>
+            <p>
+              <a href={SOURCE_URL} target="_blank" rel="noopener noreferrer" className="underline-offset-4 hover:underline">
+                {t("legal.source")}
+              </a>
+              {" · "}
+              <a href={LICENSE_URL} target="_blank" rel="noopener noreferrer" className="underline-offset-4 hover:underline">
+                {t("legal.license")}
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </div>

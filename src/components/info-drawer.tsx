@@ -9,13 +9,14 @@ import {
   SheetContent,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { APP_VERSION, APP_VERSION_LABEL, APP_BUILD, APP_SHA } from "@/lib/version";
+import { APP_VERSION, APP_VERSION_LABEL, APP_BUILD, APP_SHA, SOURCE_URL, LICENSE_URL } from "@/lib/version";
 
 const GILDE_URL = "https://www.gilde.org";
 const GILDE_LOGO = "https://www.gilde.org/gilde/logo.svg";
 
 export function InfoDrawer({ tenantName }: { tenantName: string }) {
   const t = useTranslations("about");
+  const legal = useTranslations("legal");
 
   return (
     <Sheet>
@@ -76,6 +77,20 @@ export function InfoDrawer({ tenantName }: { tenantName: string }) {
               <dd className="truncate text-right text-xs font-medium">{tenantName}</dd>
             </div>
           </dl>
+
+          {/* Rechtliche Hinweise (AGPL-3.0 §5d, §13) */}
+          <div className="space-y-1.5 rounded-xl border px-3 py-2.5 text-xs text-muted-foreground">
+            <p>{legal("copyright")}</p>
+            <p>{legal("warranty")}</p>
+            <p className="flex gap-4 pt-1">
+              <a href={SOURCE_URL} target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline-offset-4 hover:underline">
+                {legal("source")}
+              </a>
+              <a href={LICENSE_URL} target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline-offset-4 hover:underline">
+                {legal("license")}
+              </a>
+            </p>
+          </div>
 
           {/* Gilde-Signatur mit animiertem Logo */}
           <a

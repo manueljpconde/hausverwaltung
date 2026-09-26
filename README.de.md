@@ -2,6 +2,9 @@
 
 _🇬🇧 [English](README.md) · 🇩🇪 Deutsch_
 
+> **Geänderte Fassung.** Dies ist ein Fork von [HaVeWa](https://github.com/fgilde/hausverwaltung) von Florian Gilde,
+> seit September 2026 von CRMware verändert. Lizenz: [GNU AGPL v3.0](LICENSE) (siehe [LICENSING.md](LICENSING.md)).
+
 📖 **[Dokumentation & Hilfe](https://fgilde.github.io/hausverwaltung/docs/)** · 🌐 **[Website](https://fgilde.github.io/hausverwaltung/)**
 
 Vollständige Immobilienverwaltungssoftware für **Miet- und WEG-Verwaltung**.
