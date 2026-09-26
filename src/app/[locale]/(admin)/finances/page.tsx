@@ -31,7 +31,7 @@ import { DunningDialog } from "@/components/dunning-dialog";
 import { PaymentEditDialog } from "@/components/payment-dialog-edit";
 import { summarizeTransactions } from "@/lib/transactions";
 import { deleteCharge, deleteAccount, deleteMandate, deletePayment, seedDefaultAccounts } from "@/server/actions/finances";
-import { ALLOCATIONS_FOR_BALANCE, chargeBalance, chargeLease, paymentChargeType } from "@/lib/charges";
+import { ALLOCATIONS_FOR_BALANCE, chargeBalance, chargeLease, chargeSubject, paymentChargeType } from "@/lib/charges";
 
 export default async function FinancesPage({
   searchParams,
@@ -60,7 +60,10 @@ export default async function FinancesPage({
         allocations: ALLOCATIONS_FOR_BALANCE,
         dunnings: { select: { level: true } },
         lease: { include: leaseInclude },
-        areaAllocation: { select: { lease: { include: leaseInclude } } },
+        areaAllocation: { select: { label: true, lease: { include: leaseInclude } } },
+        quotaDebtorSnapshot: {
+          select: { person: { select: { firstName: true, lastName: true } }, line: { select: { unit: { select: { label: true } } } } },
+        },
       },
       orderBy: [{ dueDate: "desc" }],
     }),
@@ -254,7 +257,7 @@ export default async function FinancesPage({
                             href={`/units/${lease.unit.id}`}
                             className="font-medium text-foreground hover:underline"
                           >
-                            {lease.unit.building.property.name} · {lease.unit.label}
+                            {lease.unit.building.property.name} · {chargeSubject(c)}
                           </Link>
                           {lease.renters.length > 0 && (
                             <Link href={`/leases/${lease.id}`} className="text-xs hover:underline">
@@ -263,7 +266,7 @@ export default async function FinancesPage({
                           )}
                         </div>
                       ) : (
-                        t("common.none")
+                        chargeSubject(c) || t("common.none")
                       )}
                     </TableCell>
                     <TableCell className="text-right">{money(Number(c.amount), locale)}</TableCell>

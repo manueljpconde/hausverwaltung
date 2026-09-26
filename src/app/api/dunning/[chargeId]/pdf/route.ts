@@ -4,7 +4,7 @@ import { roleAllows } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import { simplePdf } from "@/lib/pdf";
 import { dunningDocument } from "@/lib/dunning";
-import { ALLOCATIONS_FOR_BALANCE, chargeBalance, chargeLease } from "@/lib/charges";
+import { ALLOCATIONS_FOR_BALANCE, chargeBalance, chargeLease, chargeSubject } from "@/lib/charges";
 
 // Mahnung / Zahlungserinnerung zu einer Sollstellung direkt als PDF (statt der
 // HTML-Vorschauseite; umgeht auch das Darkmode-Darstellungsproblem). Spiegelt
@@ -26,7 +26,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ chargeI
       dunnings: { orderBy: { level: "desc" }, take: 1 },
       allocations: ALLOCATIONS_FOR_BALANCE,
       lease: { include: leaseInclude },
-      areaAllocation: { select: { lease: { include: leaseInclude } } },
+      areaAllocation: { select: { label: true, lease: { include: leaseInclude } } },
+      quotaDebtorSnapshot: {
+        select: { person: { select: { firstName: true, lastName: true } }, line: { select: { unit: { select: { label: true } } } } },
+      },
     },
   });
   const lease = charge ? chargeLease(charge) : null;
@@ -40,7 +43,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ chargeI
   const doc = dunningDocument({
     level: dun?.level ?? 1,
     propertyName: property.name,
-    unitLabel: lease.unit.label,
+    unitLabel: chargeSubject(charge),
     renterName: renter ? `${renter.firstName} ${renter.lastName}` : "",
     tenantName: property.tenant.name,
     chargeTypeLabel: charge.type,

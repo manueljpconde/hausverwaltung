@@ -5,6 +5,13 @@ import { chargesForLeases } from "./portal-charges";
 import { recordPayment } from "./payments";
 import { paymentChargeType } from "./charges";
 
+const SUBJECT_READERS = [
+  "src/app/[locale]/(admin)/finances/page.tsx",
+  "src/app/[locale]/print/dunning/page.tsx",
+  "src/app/api/dunning/[chargeId]/pdf/route.ts",
+  "src/server/actions/finances.ts",
+];
+
 const READERS = [
   "src/lib/api-data.ts", "src/app/[locale]/(admin)/finances/page.tsx", "src/app/[locale]/(admin)/dunning/page.tsx",
   "src/app/[locale]/(admin)/reports/page.tsx", "src/app/[locale]/(admin)/dashboard/page.tsx", "src/app/[locale]/portal/page.tsx",
@@ -27,6 +34,13 @@ describe("Leser (#52)", () => {
     for (const f of READERS) {
       const src = readFileSync(new URL(`../../${f}`, import.meta.url), "utf8");
       expect(src, f).not.toMatch(/\.payments\.(reduce|map)|payments:\s*\{\s*select|\bp\.charge\b|allocations\[0\]|allocations:[^;]*take:\s*1/);
+    }
+  });
+
+  it("Finanzliste, Mahnbrief und PDF beschriften den Betreff über chargeSubject", () => {
+    for (const f of SUBJECT_READERS) {
+      const src = readFileSync(new URL(`../../${f}`, import.meta.url), "utf8");
+      expect(src, f).toMatch(/chargeSubject\(/);
     }
   });
 });

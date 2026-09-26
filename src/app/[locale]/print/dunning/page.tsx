@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { money, date } from "@/lib/format";
 import { getDateLocale } from "@/lib/date-locale";
 import { PrintButton } from "@/components/print-button";
-import { ALLOCATIONS_FOR_BALANCE, chargeBalance, chargeLease } from "@/lib/charges";
+import { ALLOCATIONS_FOR_BALANCE, chargeBalance, chargeLease, chargeSubject } from "@/lib/charges";
 
 // Druckbare Mahnung / Zahlungserinnerung zu einer Sollstellung.
 export default async function PrintDunningPage({
@@ -32,7 +32,10 @@ export default async function PrintDunningPage({
       dunnings: { orderBy: { level: "desc" }, take: 1 },
       allocations: ALLOCATIONS_FOR_BALANCE,
       lease: { include: leaseInclude },
-      areaAllocation: { select: { lease: { include: leaseInclude } } },
+      areaAllocation: { select: { label: true, lease: { include: leaseInclude } } },
+      quotaDebtorSnapshot: {
+        select: { person: { select: { firstName: true, lastName: true } }, line: { select: { unit: { select: { label: true } } } } },
+      },
     },
   });
   const lease = charge ? chargeLease(charge) : null;
@@ -73,7 +76,7 @@ export default async function PrintDunningPage({
       <h1 className="mb-4 text-lg font-bold">{title}</h1>
 
       <p className="mb-4">
-        {t("print.dunningIntro", { unit: `${property.name} · ${lease.unit.label}` })}
+        {t("print.dunningIntro", { unit: `${property.name} · ${chargeSubject(charge)}` })}
       </p>
 
       <table className="mb-4 w-full border-collapse">

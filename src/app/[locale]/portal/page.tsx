@@ -74,7 +74,13 @@ export default async function PortalPage() {
   // die stehen bereits unter „Offene Posten") — #37.
   const paymentHistory = leaseCharges
     .flatMap((c) =>
-      c.allocations.map((a) => ({ id: a.payment.id, date: a.payment.date, amount: Number(a.amount), type: c.type })),
+      c.allocations.map((a) => ({
+        rowId: `${a.payment.id}-${c.id}`,
+        paymentId: a.payment.id,
+        date: a.payment.date,
+        amount: Number(a.amount),
+        type: c.type,
+      })),
     )
     .sort((a, b) => b.date.getTime() - a.date.getTime());
 
@@ -181,7 +187,7 @@ export default async function PortalPage() {
               <p className="text-sm text-muted-foreground">{t("portal.noPayments")}</p>
             ) : (
               paymentHistory.map((p) => (
-                <div key={p.id} className="flex items-center justify-between gap-3 text-sm">
+                <div key={p.rowId} className="flex items-center justify-between gap-3 text-sm">
                   <span className="text-muted-foreground">
                     {t(`chargeType.${p.type}`)} · {date(p.date, df)}
                   </span>

@@ -21,7 +21,7 @@ import { saveFile } from "@/lib/storage";
 import { money } from "@/lib/format";
 import { dunningDocument } from "@/lib/dunning";
 import { chargeHasHistory, deletePaymentWithAllocations, matchOpenCharge, openChargesForMatching, PaymentError, recordPayment, unappliedPart } from "@/lib/payments";
-import { ALLOCATIONS_FOR_BALANCE, chargeBalance, chargeLease } from "@/lib/charges";
+import { ALLOCATIONS_FOR_BALANCE, chargeBalance, chargeLease, chargeSubject } from "@/lib/charges";
 
 // Standard-Kontenrahmen für den Mandanten anlegen (idempotent).
 export async function seedDefaultAccounts(): Promise<void> {
@@ -239,7 +239,10 @@ export async function emailDunning(_p: ActionState, fd: FormData): Promise<Actio
       dunnings: { orderBy: { level: "desc" }, take: 1 },
       allocations: ALLOCATIONS_FOR_BALANCE,
       lease: { include: leaseInclude },
-      areaAllocation: { select: { lease: { include: leaseInclude } } },
+      areaAllocation: { select: { label: true, lease: { include: leaseInclude } } },
+      quotaDebtorSnapshot: {
+        select: { person: { select: { firstName: true, lastName: true } }, line: { select: { unit: { select: { label: true } } } } },
+      },
     },
   });
   const lease = charge ? chargeLease(charge) : null;
@@ -256,7 +259,7 @@ export async function emailDunning(_p: ActionState, fd: FormData): Promise<Actio
   const built = dunningDocument({
     level,
     propertyName: property.name,
-    unitLabel: lease.unit.label,
+    unitLabel: chargeSubject(charge),
     renterName: `${renter.firstName} ${renter.lastName}`,
     tenantName: property.tenant.name,
     chargeTypeLabel: charge.type,
