@@ -774,7 +774,8 @@
     "arrears": "Nachzahlung",
     "total": "Summe umlagefähig",
     "noUnits": "Objekt hat keine Einheiten.",
-    "hint": "Saldo positiv = Guthaben (Rückzahlung), negativ = Nachzahlung. Heiz-/Warmwasserkosten werden nach HeizkostenV zu 30 % nach Fläche und 70 % nach gemessenem Verbrauch verteilt.",
+    "hint": "Saldo positiv = Guthaben (Rückzahlung), negativ = Nachzahlung.",
+    "heatingHint": "Heiz-/Warmwasserkosten werden nach HeizkostenV anteilig nach Fläche und nach gemessenem Verbrauch verteilt.",
     "bookCharges": "Nachzahlungen buchen",
     "mailTenants": "An Mieter mailen",
     "charged": "Nachzahlungen als Sollstellung gebucht.",
@@ -1062,7 +1063,7 @@
   },
   "print": {
     "printPdf": "Druckansicht / PDF",
-    "heatingNote": "Heiz- und Warmwasserkosten wurden gemäß HeizkostenV zu 30 % nach Wohnfläche und 70 % nach gemessenem Verbrauch verteilt.",
+    "heatingNote": "Heiz- und Warmwasserkosten wurden gemäß HeizkostenV anteilig nach Wohnfläche und nach gemessenem Verbrauch verteilt.",
     "reminderTitle": "Zahlungserinnerung",
     "dunningTitle": "Mahnung",
     "dunningIntro": "für die Einheit {unit} ist folgender Betrag noch offen:",

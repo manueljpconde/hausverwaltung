@@ -1,6 +1,8 @@
 import { getTranslations, getLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/rbac";
+import { prisma } from "@/lib/prisma";
+import { showHeatingCostNotes } from "@/lib/market";
 import { money } from "@/lib/format";
 import { computeStatement } from "@/server/statements";
 import { PrintButton } from "@/components/print-button";
@@ -20,7 +22,10 @@ export default async function PrintStatementPage({
   const year = Number(sp.year) || new Date().getFullYear();
   if (!propertyId) notFound();
 
-  const st = await computeStatement(user.tenantId, propertyId, year);
+  const [st, tenant] = await Promise.all([
+    computeStatement(user.tenantId, propertyId, year),
+    prisma.tenant.findUnique({ where: { id: user.tenantId }, select: { market: true } }),
+  ]);
   if (!st.property) notFound();
 
   return (
@@ -66,7 +71,7 @@ export default async function PrintStatementPage({
         </tfoot>
       </table>
 
-      <p className="mt-8 text-xs text-neutral-500">{t("print.heatingNote")}</p>
+      {showHeatingCostNotes(tenant?.market) && <p className="mt-8 text-xs text-neutral-500">{t("print.heatingNote")}</p>}
     </div>
   );
 }

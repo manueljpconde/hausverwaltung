@@ -8,6 +8,7 @@ import { money } from "@/lib/format";
 import { simplePdf } from "@/lib/pdf";
 import { saveFile } from "@/lib/storage";
 import { computeStatement } from "@/server/statements";
+import { heatingPdfLine } from "@/lib/statement-pdf";
 import type { ActionState } from "@/lib/schemas";
 
 function parse(fd: FormData) {
@@ -57,7 +58,11 @@ export async function emailStatementToTenants(_p: ActionState, fd: FormData): Pr
   const { propertyId, year } = parse(fd);
   if (!propertyId) return { error: "Kein Objekt" };
 
-  const st = await computeStatement(user.tenantId, propertyId, year);
+  const [st, tenant] = await Promise.all([
+    computeStatement(user.tenantId, propertyId, year),
+    prisma.tenant.findUnique({ where: { id: user.tenantId }, select: { market: true } }),
+  ]);
+  const heatingLine = heatingPdfLine(tenant?.market);
   const propName = st.property?.name ?? "";
   let created = 0;
 
@@ -79,8 +84,7 @@ export async function emailStatementToTenants(_p: ActionState, fd: FormData): Pr
       `Umgelegte Kosten: ${money(u.allocated)}`,
       `Vorauszahlungen:  ${money(u.prepayment)}`,
       `Ergebnis: ${money(Math.abs(u.balance))} ${kind}`,
-      "",
-      "Heiz-/Warmwasserkosten nach HeizkostenV (30% Flaeche / 70% Verbrauch).",
+      ...(heatingLine ? ["", heatingLine] : []),
     ]);
     const name = `Abrechnung ${year} - ${u.label}.pdf`;
     const storageKey = await saveFile(pdf, name);
