@@ -6,6 +6,7 @@ import {
   assertDemoSeedAllowed,
   demoDate,
   demoDateFrom,
+  historicalDemoDateFrom,
   invalidPtNif,
   isValidPtNif,
   resolveDemoAnchor,
@@ -120,6 +121,13 @@ describe("CrmWare Portugal demo seed (#46)", () => {
     expect(demoDateFrom(anchor, 0, 10).toISOString()).toBe("2027-02-10T12:00:00.000Z");
     expect(demoDateFrom(anchor, 1, 5).toISOString()).toBe("2027-03-05T12:00:00.000Z");
     expect(demoDate(0, CRMWARE_DEMO_ANCHOR.getUTCDate()).getUTCMonth()).toBe(CRMWARE_DEMO_ANCHOR.getUTCMonth());
+  });
+
+  it("clamps generated historical dates to the execution anchor", () => {
+    const anchor = resolveDemoAnchor(new Date("2027-02-03T08:30:00Z"));
+    expect(historicalDemoDateFrom(anchor, 0, 12)).toEqual(anchor);
+    expect(historicalDemoDateFrom(anchor, 0, 2).toISOString()).toBe("2027-02-02T12:00:00.000Z");
+    expect(historicalDemoDateFrom(anchor, -1, 28).toISOString()).toBe("2027-01-28T12:00:00.000Z");
   });
 
   it("accepts the committed definitions", () => {

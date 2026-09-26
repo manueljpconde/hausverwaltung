@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { afterAll, describe, expect, it } from "vitest";
-import { CRMWARE_DEMO_SCENARIOS, validateSeededScenarios } from "../../prisma/seed-crmware-demo";
+import { CRMWARE_DEMO_ANCHOR, CRMWARE_DEMO_SCENARIOS, validateSeededScenarios } from "../../prisma/seed-crmware-demo";
 
 const databaseUrl = process.env.CRMWARE_DEMO_TEST_DATABASE_URL;
 const root = path.resolve(fileURLToPath(new URL("../..", import.meta.url)));
@@ -60,6 +60,13 @@ describe.skipIf(!databaseUrl)("CrmWare demo seed database contract (#46)", () =>
     expect(await client!.charge.count({
       where: { tenantId: { in: tenantIds }, dunnings: { some: {} }, payments: { some: {} } },
     })).toBe(0);
+    expect(await client!.payment.count({
+      where: { tenantId: { in: tenantIds }, account: { name: "Conta de rendas" }, chargeId: null },
+    })).toBe(0);
+    const rentalTenantId = seededTenants.find((tenant) => tenant.name === CRMWARE_DEMO_SCENARIOS[2].tenantName)!.id;
+    expect(await client!.payment.count({
+      where: { tenantId: rentalTenantId, account: { name: "Conta operacional" }, chargeId: null },
+    })).toBe(78);
 
     const mixedTenantId = seededTenants.find((tenant) => tenant.name === CRMWARE_DEMO_SCENARIOS[0].tenantName)!.id;
     expect(await client!.ticket.count({ where: { tenantId: mixedTenantId, reporterId: { not: null } } })).toBeGreaterThan(0);
@@ -81,8 +88,90 @@ describe.skipIf(!databaseUrl)("CrmWare demo seed database contract (#46)", () =>
     });
     expect(resolutions.every((resolution) => {
       const unitCount = resolution.property.buildings.reduce((total, building) => total + building.units.length, 0);
-      return resolution.votesYes + resolution.votesNo + resolution.votesAbstain <= unitCount;
+      const totalVotes = resolution.votesYes + resolution.votesNo + resolution.votesAbstain;
+      return totalVotes <= unitCount;
     })).toBe(true);
+
+    const resolutionSemantics = await client!.resolution.findMany({
+      where: { tenantId: { in: tenantIds } },
+      select: { result: true, votesYes: true, votesNo: true, votesAbstain: true },
+    });
+    expect(resolutionSemantics.every((resolution) => resolution.result === "VERTAGT"
+      ? resolution.votesYes + resolution.votesNo + resolution.votesAbstain === 0
+      : resolution.result === "ANGENOMMEN"
+        ? resolution.votesYes > resolution.votesNo
+        : resolution.votesYes <= resolution.votesNo)).toBe(true);
+
+    const reportedTickets = await client!.ticket.findMany({
+      where: { tenantId: { in: tenantIds }, reporterId: { not: null } },
+      select: {
+        createdAt: true,
+        reporter: { select: { personId: true } },
+        unit: { select: { leases: { select: { startDate: true, endDate: true, renters: { select: { personId: true } } } } } },
+      },
+    });
+    expect(reportedTickets.every((ticket) => ticket.unit?.leases.some((lease) =>
+      lease.renters.some((renter) => renter.personId === ticket.reporter?.personId)
+      && lease.startDate <= ticket.createdAt
+      && (!lease.endDate || lease.endDate >= ticket.createdAt),
+    ))).toBe(true);
+
+    const linkedInvoices = await client!.document.findMany({
+      where: { tenantId: { in: tenantIds }, invoiceTotal: { not: null }, payments: { some: {} } },
+      select: { invoiceTotal: true, createdAt: true, payments: { select: { amount: true, date: true } } },
+    });
+    expect(linkedInvoices.length).toBeGreaterThan(0);
+    expect(linkedInvoices.every((document) => document.payments.every((payment) =>
+      Number(document.invoiceTotal) === Number(payment.amount)
+      && document.createdAt.getTime() === payment.date.getTime(),
+    ))).toBe(true);
+
+    const futureCounts = await Promise.all([
+      client!.payment.count({ where: { tenantId: { in: tenantIds }, date: { gt: CRMWARE_DEMO_ANCHOR } } }),
+      client!.ticket.count({ where: { tenantId: { in: tenantIds }, createdAt: { gt: CRMWARE_DEMO_ANCHOR } } }),
+      client!.document.count({ where: { tenantId: { in: tenantIds }, createdAt: { gt: CRMWARE_DEMO_ANCHOR } } }),
+      client!.notification.count({ where: { tenantId: { in: tenantIds }, createdAt: { gt: CRMWARE_DEMO_ANCHOR } } }),
+      client!.auditLog.count({ where: { tenantId: { in: tenantIds }, createdAt: { gt: CRMWARE_DEMO_ANCHOR } } }),
+      client!.reserveTransaction.count({ where: { tenantId: { in: tenantIds }, date: { gt: CRMWARE_DEMO_ANCHOR } } }),
+      client!.task.count({ where: { tenantId: { in: tenantIds }, createdAt: { gt: CRMWARE_DEMO_ANCHOR } } }),
+      client!.appointment.count({ where: { tenantId: { in: tenantIds }, createdAt: { gt: CRMWARE_DEMO_ANCHOR } } }),
+    ]);
+    expect(futureCounts).toEqual([0, 0, 0, 0, 0, 0, 0, 0]);
+
+    const chargeToDuplicate = await client!.charge.findFirstOrThrow({
+      where: { tenantId: mixedTenantId, leaseId: { not: null } },
+      select: { tenantId: true, leaseId: true, type: true, period: true, dueDate: true, amount: true, description: true },
+    });
+    const duplicate = await client!.charge.create({ data: chargeToDuplicate });
+    try {
+      const corrupted = await validateSeededScenarios(client!);
+      expect(corrupted.find((row) => row.scenario === "mixed")?.errors.join(" ")).toMatch(/cobrado 2 vezes/);
+    } finally {
+      await client!.charge.delete({ where: { id: duplicate.id } });
+    }
+
+    const notification = await client!.notification.findFirstOrThrow({ where: { tenantId: mixedTenantId } });
+    await client!.notification.update({ where: { id: notification.id }, data: { createdAt: new Date(CRMWARE_DEMO_ANCHOR.getTime() + 86_400_000) } });
+    try {
+      const corrupted = await validateSeededScenarios(client!);
+      expect(corrupted.find((row) => row.scenario === "mixed")?.errors.join(" ")).toMatch(/data futura/);
+    } finally {
+      await client!.notification.update({ where: { id: notification.id }, data: { createdAt: notification.createdAt } });
+    }
+
+    const leasedUnit = await client!.unit.findFirstOrThrow({
+      where: { tenantId: mixedTenantId, leases: { some: { endDate: { not: null } } } },
+      select: { leases: { orderBy: { startDate: "asc" }, select: { id: true, startDate: true, endDate: true } } },
+    });
+    const terminatedLease = leasedUnit.leases.find((lease) => lease.endDate)!;
+    const followingLease = leasedUnit.leases.find((lease) => lease.startDate > terminatedLease.startDate)!;
+    await client!.lease.update({ where: { id: terminatedLease.id }, data: { endDate: followingLease.startDate } });
+    try {
+      const corrupted = await validateSeededScenarios(client!);
+      expect(corrupted.find((row) => row.scenario === "mixed")?.errors.join(" ")).toMatch(/contratos sobrepostos/);
+    } finally {
+      await client!.lease.update({ where: { id: terminatedLease.id }, data: { endDate: terminatedLease.endDate } });
+    }
 
     const tenantIdsBeforeCollision = await client!.tenant.findMany({
       where: { name: { in: CRMWARE_DEMO_SCENARIOS.map((item) => item.tenantName) } },
