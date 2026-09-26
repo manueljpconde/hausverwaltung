@@ -34,6 +34,13 @@ describe("listBackgroundVideos (#22)", () => {
     expect(await listBackgroundVideos({ baseDir: base, slug: "acme" })).toEqual([]);
   });
 
+  it("lehnt Slugs ab, die aus dem Videoordner herausführen könnten", async () => {
+    put("default", "estate-1.mp4");
+    for (const slug of ["../default", "a/b", "..", "", "Acme"]) {
+      await expect(listBackgroundVideos({ baseDir: base, slug })).rejects.toThrow(/slug/i);
+    }
+  });
+
   it("Standard: echter Ordner mit dem aktuellen Video als default", async () => {
     expect(await listBackgroundVideos()).toEqual(["/videos/default/estate-1.mp4"]);
   });
