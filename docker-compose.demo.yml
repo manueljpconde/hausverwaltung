@@ -1,0 +1,55 @@
+# Demo-Stack (realestate-demo): gleiches Image wie der Haupt-Stack, eigene DB und
+# eigener Dokumentenspeicher. Liegt in /opt/havewa-demo; die Haupt-DB bleibt unberührt.
+# Dienstnamen bewusst nicht app/db: im gemeinsamen Caddy-Netz wären sie DNS-Aliasse
+# neben dem Haupt-Stack (reverse_proxy app:3000 würde sonst auch hierher verteilen).
+# Neu aufsetzen + Demodaten: deploy/demo-reset.sh (siehe docs/deployment/HETZNER.md).
+name: havewa-demo
+
+services:
+  demo-app:
+    image: "${HAVEWA_IMAGE:-ghcr.io/manueljpconde/hausverwaltung}:${HAVEWA_TAG:?HAVEWA_TAG in .env setzen, z. B. sha-abc1234}"
+    container_name: havewa-demo-app
+    restart: unless-stopped
+    mem_limit: 512m
+    depends_on:
+      demo-db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://havewa:${DEMO_DB_PASSWORD:?DEMO_DB_PASSWORD fehlt}@demo-db:5432/havewa_demo?schema=public"
+      AUTH_SECRET: "${DEMO_AUTH_SECRET:?DEMO_AUTH_SECRET fehlt}"
+      AUTH_TRUST_HOST: "true"
+      AUTH_URL: "https://${DEMO_DOMAIN:?DEMO_DOMAIN fehlt}"
+    volumes:
+      - demo-storage:/app/storage
+    networks:
+      - default
+      - edge
+
+  demo-db:
+    image: postgres:16-alpine
+    container_name: havewa-demo-db
+    restart: unless-stopped
+    mem_limit: 256m
+    environment:
+      POSTGRES_USER: havewa
+      POSTGRES_PASSWORD: "${DEMO_DB_PASSWORD:?DEMO_DB_PASSWORD fehlt}"
+      POSTGRES_DB: havewa_demo
+    # Nur lokal auf dem Server: der Seed läuft vom Host aus gegen 127.0.0.1.
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - demo-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U havewa -d havewa_demo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+networks:
+  edge:
+    external: true
+    name: havewa_default
+
+volumes:
+  demo-db:
+  demo-storage:
