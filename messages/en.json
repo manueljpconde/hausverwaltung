@@ -979,7 +979,15 @@
     "placeholder": "Ask about your portfolio…",
     "ask": "Ask",
     "thinking": "Thinking…",
-    "notConfigured": "Without ANTHROPIC_API_KEY the assistant only shows a metrics summary. Set the key for real AI answers."
+    "notConfigured": "Without ANTHROPIC_API_KEY the assistant only shows a metrics summary. Set the key for real AI answers.",
+    "emptyQuestion": "Please enter a question.",
+    "failed": "AI request failed",
+    "noProperty": "No property",
+    "fallbackSummary": "AI assistant not configured (ANTHROPIC_API_KEY missing). Portfolio metrics:\n• {properties} properties, {units} units ({occupied} let, {vacant} vacant)\n• Target rent/month: {rent} €\n• Open items: {open} € ({overdue} overdue)\n• {tickets} open tickets, {maintenance} maintenance items due",
+    "fallbackStatement": "AI assistant not configured (ANTHROPIC_API_KEY missing). Statement summary {year}:\n• Property: {property}\n• Total allocable costs: {total}",
+    "fallbackStatementUnit": "• {unit}: allocated {allocated}, prepayments {prepayment}, balance {balance} ({state})",
+    "balanceCredit": "credit",
+    "balanceDue": "amount due"
   },
   "calendar": {
     "title": "Calendar",

@@ -1050,7 +1050,15 @@
     "placeholder": "Pergunte sobre o seu portefólio…",
     "ask": "Perguntar",
     "thinking": "A pensar…",
-    "notConfigured": "Sem ANTHROPIC_API_KEY o assistente mostra apenas um resumo de métricas. Defina a chave para respostas de IA reais."
+    "notConfigured": "Sem ANTHROPIC_API_KEY o assistente mostra apenas um resumo de métricas. Defina a chave para respostas de IA reais.",
+    "emptyQuestion": "Escreva uma pergunta.",
+    "failed": "O pedido à IA falhou",
+    "noProperty": "Nenhum imóvel",
+    "fallbackSummary": "Assistente de IA não configurado (falta a ANTHROPIC_API_KEY). Métricas do portefólio:\n• {properties} imóveis, {units} frações ({occupied} arrendadas, {vacant} devolutas)\n• Renda devida/mês: {rent} €\n• Valores em aberto: {open} € ({overdue} em atraso)\n• {tickets} pedidos em aberto, {maintenance} manutenções vencidas",
+    "fallbackStatement": "Assistente de IA não configurado (falta a ANTHROPIC_API_KEY). Resumo do acerto de {year}:\n• Imóvel: {property}\n• Total de custos repartíveis: {total}",
+    "fallbackStatementUnit": "• {unit}: repartido {allocated}, adiantamentos {prepayment}, saldo {balance} ({state})",
+    "balanceCredit": "a favor",
+    "balanceDue": "a pagar"
   },
   "calendar": {
     "title": "Calendário",

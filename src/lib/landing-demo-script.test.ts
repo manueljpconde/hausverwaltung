@@ -13,7 +13,7 @@ function run(env: Record<string, string>) {
   // curl-Attrappe: protokolliert Aufrufe, schickt nichts ins Netz.
   writeFileSync(join(dir, "curl"), `#!/bin/sh\necho "$@" >> "${log}"\necho '{"id":"x"}'\n`);
   chmodSync(join(dir, "curl"), 0o755);
-  const r = spawnSync("bash", [script], { env: { PATH: `${dir}:${process.env.PATH}`, TOKEN: "t", ...env }, encoding: "utf8" });
+  const r = spawnSync("bash", [script], { env: { NODE_ENV: "test", PATH: `${dir}:${process.env.PATH}`, TOKEN: "t", ...env }, encoding: "utf8" });
   return { status: r.status, stderr: r.stderr, calls: existsSync(log) ? readFileSync(log, "utf8") : "" };
 }
 

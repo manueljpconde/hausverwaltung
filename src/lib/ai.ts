@@ -1,7 +1,7 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
-import { APP_NAME } from "@/lib/brand";
+import { systemPrompt } from "@/lib/ai-prompt";
 
 // KI-Adapter. Unterstützt Anthropic (Claude) und beliebige OpenAI-kompatible
 // Anbieter (OpenAI, OpenRouter → Hermes/Llama/…, Groq, Ollama, LM Studio …)
@@ -36,17 +36,12 @@ export function isAiConfigured(cfg?: AiConfig): boolean {
   return !!resolveKey(cfg);
 }
 
-const SYSTEM = `Du bist der Assistent einer deutschen Hausverwaltungssoftware (${APP_NAME}).
-Beantworte Fragen zum verwalteten Immobilienbestand knapp, sachlich und auf Deutsch.
-Stütze dich ausschließlich auf die im Kontext gelieferten Daten; erfinde keine Zahlen.
-Wenn die Daten für eine Antwort nicht ausreichen, sage das offen.`;
-
-async function anthropicChat(cfg: AiConfig, apiKey: string, user: string, maxTokens: number): Promise<string> {
+async function anthropicChat(cfg: AiConfig, apiKey: string, system: string, user: string, maxTokens: number): Promise<string> {
   const client = new Anthropic({ apiKey });
   const res = await client.messages.create({
     model: resolveModel(cfg),
     max_tokens: maxTokens,
-    system: SYSTEM,
+    system,
     messages: [{ role: "user", content: user }],
   });
   return res.content
@@ -56,27 +51,28 @@ async function anthropicChat(cfg: AiConfig, apiKey: string, user: string, maxTok
     .trim();
 }
 
-async function openaiChat(cfg: AiConfig, apiKey: string, user: string, maxTokens: number): Promise<string> {
+async function openaiChat(cfg: AiConfig, apiKey: string, system: string, user: string, maxTokens: number): Promise<string> {
   const client = new OpenAI({ apiKey, baseURL: cfg.baseUrl || undefined });
   const res = await client.chat.completions.create({
     model: resolveModel(cfg),
     max_tokens: maxTokens,
     messages: [
-      { role: "system", content: SYSTEM },
+      { role: "system", content: system },
       { role: "user", content: user },
     ],
   });
   return res.choices[0]?.message?.content?.trim() ?? "";
 }
 
-/** Frage an die KI, angereichert mit einem Bestands-Kontext. */
-export async function askAssistant(context: string, question: string, cfg?: AiConfig): Promise<string> {
+/** Frage an die KI, angereichert mit einem Bestands-Kontext; Antwort in der UI-Sprache. */
+export async function askAssistant(context: string, question: string, locale: string, cfg?: AiConfig): Promise<string> {
   const apiKey = resolveKey(cfg);
   if (!apiKey) throw new Error("Kein API-Schlüssel konfiguriert");
-  const user = `Bestands-Kontext (JSON):\n${context}\n\nFrage: ${question}`;
+  const user = `Portfolio context (JSON):\n${context}\n\nQuestion: ${question}`;
+  const system = systemPrompt(locale);
   return resolveProvider(cfg) === "openai"
-    ? openaiChat(cfg!, apiKey, user, 1024)
-    : anthropicChat(cfg ?? {}, apiKey, user, 1024);
+    ? openaiChat(cfg!, apiKey, system, user, 1024)
+    : anthropicChat(cfg ?? {}, apiKey, system, user, 1024);
 }
 
 /** Test-Aufruf für die Einstellungen: kurze Anfrage, wirft bei Fehler. */
@@ -84,6 +80,6 @@ export async function pingAi(cfg: AiConfig): Promise<string> {
   const apiKey = resolveKey(cfg);
   if (!apiKey) throw new Error("Kein API-Schlüssel konfiguriert");
   return resolveProvider(cfg) === "openai"
-    ? openaiChat(cfg, apiKey, "Antworte nur mit: OK", 16)
-    : anthropicChat(cfg, apiKey, "Antworte nur mit: OK", 16);
+    ? openaiChat(cfg, apiKey, systemPrompt("en"), "Reply only with: OK", 16)
+    : anthropicChat(cfg, apiKey, systemPrompt("en"), "Reply only with: OK", 16);
 }
