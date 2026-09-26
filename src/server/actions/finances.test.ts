@@ -10,9 +10,8 @@ vi.mock("next-intl/server", () => ({
 vi.mock("@/lib/rbac", () => ({ requireWriter: async () => ({ id: "u1", tenantId: "t1" }) }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({ prisma: {} }));
-// api-ops.ts zieht transitiv @/lib/adapters/mailer.ts (import "server-only") mit —
-// unter Vitest nicht auflösbar; wie ai.test.ts das ganze Modul mocken.
-vi.mock("@/lib/api-ops", () => ({ generateAreaCharges: vi.fn() }));
+// #52: finances.ts importiert jetzt generateMonthlyCharges aus @/lib/charge-generation
+// (kein server-only mehr transitiv, siehe api-ops.ts/mailer.ts vorher) — kein Mock mehr nötig.
 vi.mock("@/lib/payments", async () => {
   const actual = await vi.importActual<typeof import("@/lib/payments")>("@/lib/payments");
   return { ...actual, recordPayment: vi.fn() };

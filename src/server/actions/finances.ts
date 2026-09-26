@@ -14,7 +14,7 @@ import {
 } from "@/lib/schemas";
 import { parseCamt053 } from "@/lib/adapters/bankImport";
 import { ensureDefaultAccounts } from "@/lib/accounts";
-import { generateAreaCharges } from "@/lib/api-ops";
+import { generateMonthlyCharges } from "@/lib/charge-generation";
 import { audit } from "@/lib/audit";
 import { simplePdf } from "@/lib/pdf";
 import { saveFile } from "@/lib/storage";
@@ -82,37 +82,7 @@ export async function generateCharges(_p: ActionState, fd: FormData): Promise<Ac
   const user = await requireWriter();
   const r = generateSchema.safeParse(Object.fromEntries(fd));
   if (!r.success) return fail(r.error.issues[0]?.message);
-  const [y, m] = r.data.month.split("-").map(Number);
-  const first = new Date(Date.UTC(y, m - 1, 1));
-  const last = new Date(Date.UTC(y, m, 0));
-  const due = new Date(Date.UTC(y, m - 1, 3));
-
-  const leases = await prisma.lease.findMany({
-    where: {
-      tenantId: user.tenantId,
-      startDate: { lte: last },
-      OR: [{ endDate: null }, { endDate: { gte: first } }],
-    },
-    include: { components: { select: { amount: true } }, charges: { where: { period: first, type: "MIETE" }, select: { id: true } } },
-  });
-
-  let created = 0;
-  for (const l of leases) {
-    if (l.charges.length > 0) continue; // schon vorhanden
-    const warm = Number(l.rentCold) + l.components.reduce((a, c) => a + Number(c.amount), 0);
-    await prisma.charge.create({
-      data: {
-        tenantId: user.tenantId,
-        leaseId: l.id,
-        type: "MIETE",
-        period: first,
-        dueDate: due,
-        amount: warm,
-      },
-    });
-    created++;
-  }
-  created += await generateAreaCharges(user.tenantId, first, due, last);
+  const { created } = await generateMonthlyCharges(user.tenantId, r.data.month);
   revalidatePath("/", "layout");
   return { ok: true, error: created === 0 ? "Keine neuen Sollstellungen (bereits vorhanden)" : undefined };
 }

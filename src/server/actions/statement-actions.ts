@@ -30,7 +30,7 @@ export async function bookStatementCharges(_p: ActionState, fd: FormData): Promi
     if (!u.leaseId || u.balance >= 0) continue; // nur Nachzahlungen
     // Dedup: nicht doppelt buchen
     const exists = await prisma.charge.findFirst({
-      where: { tenantId: user.tenantId, leaseId: u.leaseId, description: desc },
+      where: { tenantId: user.tenantId, leaseId: u.leaseId, description: desc, status: "ISSUED" },
       select: { id: true },
     });
     if (exists) continue;
