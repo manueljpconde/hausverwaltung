@@ -1,6 +1,6 @@
 "use client";
 
-import { Info, BookOpen, Globe, Bug, ExternalLink, Building2 } from "lucide-react";
+import { Info, ExternalLink, Building2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,20 +11,11 @@ import {
 } from "@/components/ui/sheet";
 import { APP_VERSION, APP_VERSION_LABEL, APP_BUILD, APP_SHA } from "@/lib/version";
 
-const DOCS_URL = "https://fgilde.github.io/hausverwaltung/docs/";
-const SITE_URL = "https://havewa.app";
-const ISSUES_URL = "https://github.com/fgilde/hausverwaltung/issues";
 const GILDE_URL = "https://www.gilde.org";
 const GILDE_LOGO = "https://www.gilde.org/gilde/logo.svg";
 
 export function InfoDrawer({ tenantName }: { tenantName: string }) {
   const t = useTranslations("about");
-
-  const links = [
-    { href: DOCS_URL, icon: BookOpen, label: t("docs") },
-    { href: SITE_URL, icon: Globe, label: t("website") },
-    { href: ISSUES_URL, icon: Bug, label: t("issues") },
-  ];
 
   return (
     <Sheet>
@@ -85,25 +76,6 @@ export function InfoDrawer({ tenantName }: { tenantName: string }) {
               <dd className="truncate text-right text-xs font-medium">{tenantName}</dd>
             </div>
           </dl>
-
-          {/* Links */}
-          <nav className="grid gap-1">
-            {links.map((l) => (
-              <a
-                key={l.href}
-                href={l.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-muted"
-              >
-                <span className="grid size-8 place-items-center rounded-lg bg-primary/10 text-primary">
-                  <l.icon className="size-4" />
-                </span>
-                <span className="font-medium">{l.label}</span>
-                <ExternalLink className="ml-auto size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-              </a>
-            ))}
-          </nav>
 
           {/* Gilde-Signatur mit animiertem Logo */}
           <a
