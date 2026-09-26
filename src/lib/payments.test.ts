@@ -68,4 +68,33 @@ describeDb("recordPayment (#52)", () => {
     expect(await deletePaymentWithAllocations(t.tenantId, r.paymentId, db!)).toBe(1);
     expect(await db!.paymentAllocation.count({ where: { tenantId: t.tenantId } })).toBe(0);
   });
+
+  it("Konto eines anderen Mandanten wird abgelehnt", async () => {
+    const other = await createTestTenant();
+    const account = await db!.account.create({ data: { tenantId: other.tenantId, name: "Fremdkonto" } });
+    try {
+      await expect(
+        recordPayment({ tenantId: t.tenantId, accountId: account.id, date: day, amount: 50, direction: "EINGANG" }, db!),
+      ).rejects.toBeInstanceOf(PaymentError);
+      expect(await db!.payment.count({ where: { tenantId: t.tenantId } })).toBe(0);
+    } finally {
+      await db!.account.delete({ where: { id: account.id } });
+      await other.cleanup();
+    }
+  });
+
+  it("Löschen einer Zahlung wird abgelehnt, wenn danach Rückzahlungen die Eingänge übersteigen", async () => {
+    const r = await pay(200);
+    await pay(150, { direction: "AUSGANG" });
+    await expect(deletePaymentWithAllocations(t.tenantId, r.paymentId, db!)).rejects.toBeInstanceOf(PaymentError);
+    expect(await db!.payment.count({ where: { id: r.paymentId } })).toBe(1);
+    expect(await db!.paymentAllocation.count({ where: { tenantId: t.tenantId } })).toBe(2);
+  });
+
+  it("Löschen der Rückzahlung selbst ist erlaubt", async () => {
+    await pay(200);
+    const refund = await pay(150, { direction: "AUSGANG" });
+    expect(await deletePaymentWithAllocations(t.tenantId, refund.paymentId, db!)).toBe(1);
+    expect(await db!.paymentAllocation.count({ where: { paymentId: refund.paymentId } })).toBe(0);
+  });
 });

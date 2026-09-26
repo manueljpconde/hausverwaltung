@@ -22,6 +22,10 @@ export async function recordPayment(input: RecordInput, db: PrismaClient = prism
   const { chargeId, allowCredit = false, ...data } = input;
   if (!(data.amount > 0)) throw new PaymentError("Betrag muss positiv sein");
   return db.$transaction(async (tx) => {
+    if (data.accountId) {
+      const account = await tx.account.findFirst({ where: { id: data.accountId, tenantId: data.tenantId }, select: { id: true } });
+      if (!account) throw new PaymentError("Konto nicht gefunden");
+    }
     const payment = await tx.payment.create({ data });
     if (!chargeId) return { paymentId: payment.id, allocated: 0 };
 
@@ -46,11 +50,34 @@ export async function recordPayment(input: RecordInput, db: PrismaClient = prism
 }
 
 export async function deletePaymentWithAllocations(tenantId: string, paymentId: string, db: PrismaClient = prisma) {
-  const [, deleted] = await db.$transaction([
-    db.paymentAllocation.deleteMany({ where: { tenantId, paymentId } }),
-    db.payment.deleteMany({ where: { tenantId, id: paymentId } }),
-  ]);
-  return deleted.count;
+  return db.$transaction(async (tx) => {
+    const allocations = await tx.paymentAllocation.findMany({
+      where: { tenantId, paymentId },
+      select: { chargeId: true, amount: true, payment: { select: { direction: true } } },
+    });
+    const chargeIds = [...new Set(allocations.map((a) => a.chargeId))];
+    if (chargeIds.length > 0) {
+      const direction = allocations[0].payment.direction;
+      // Sperre auf die betroffenen Sollstellungen: der Saldo nach dem Löschen wird unter der Sperre geprüft.
+      await tx.$queryRaw`SELECT id FROM "Charge" WHERE id IN (${Prisma.join(chargeIds)}) AND "tenantId" = ${tenantId} ORDER BY id FOR UPDATE`;
+      const charges = await tx.charge.findMany({
+        where: { id: { in: chargeIds }, tenantId },
+        select: { id: true, amount: true, status: true, allocations: ALLOCATIONS_FOR_BALANCE },
+      });
+      for (const c of charges) {
+        const b = chargeBalance(c);
+        const ownTotal = allocations.filter((a) => a.chargeId === c.id).reduce((s, a) => s + Number(a.amount), 0);
+        const incoming = direction === "EINGANG" ? b.incoming - ownTotal : b.incoming;
+        const outgoing = direction === "AUSGANG" ? b.outgoing - ownTotal : b.outgoing;
+        if (outgoing > incoming) {
+          throw new PaymentError("Zahlung kann nicht gelöscht werden: Rückzahlungen übersteigen danach die Eingänge");
+        }
+      }
+    }
+    await tx.paymentAllocation.deleteMany({ where: { tenantId, paymentId } });
+    const deleted = await tx.payment.deleteMany({ where: { tenantId, id: paymentId } });
+    return deleted.count;
+  });
 }
 
 export async function openChargesForMatching(tenantId: string, db: PrismaClient = prisma) {
