@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { preload } from "react-dom";
 import { getTranslations } from "next-intl/server";
 import { APP_NAME, BRAND_LOGO_URL } from "@/lib/brand";
 import { SOURCE_URL } from "@/lib/version";
@@ -31,6 +32,8 @@ export default async function MarketingPage() {
   const videos = await listBackgroundVideos();
   const poster = videos[0] ? posterFor(videos[0]) : undefined;
   const posterSmall = videos[0] ? posterSmallFor(videos[0]) : undefined;
+  // LCP-Bild früh laden, vor den JS-Chunks (Telefon: 800w, sonst 1280w).
+  if (poster) preload(poster, { as: "image", fetchPriority: "high", imageSrcSet: `${posterSmall} 800w, ${poster} 1280w`, imageSizes: "100vw" });
 
   return (
     <>

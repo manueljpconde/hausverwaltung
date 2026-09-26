@@ -79,4 +79,10 @@ describe("/marketing (#33)", () => {
     expect(page).not.toContain("openSource");
     expect(page.match(/href=\{SOURCE_URL\}/g)?.length).toBe(1);
   });
+
+  it("Standbild wird im <head> vorab geladen (vor den JS-Chunks)", () => {
+    const page = read("src/app/marketing/page.tsx");
+    expect(page).toContain('import { preload } from "react-dom"');
+    expect(page).toMatch(/preload\(poster, \{ as: "image", fetchPriority: "high", imageSrcSet: `\$\{posterSmall\} 800w, \$\{poster\} 1280w`, imageSizes: "100vw" \}\)/);
+  });
 });
