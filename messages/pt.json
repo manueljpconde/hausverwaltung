@@ -1082,5 +1082,11 @@
     "einvoice": "E-faturação: emita faturas certificadas noutro software; anexe PDF/XML em Documentos. Cobranças e pagamentos ficam aqui.",
     "imi": "IMI: use Imposto predial / Property tax como registo manual (valor, taxa, notas) e guarde a caderneta/aviso como documento.",
     "footnote": "Motores completos SAF-T / e-faturação AT / IMI ficam fora deste release."
+  },
+  "legal": {
+    "copyright": "© 2026 Florian Gilde (HaVeWa) · Modifications © 2026 CRMware",
+    "warranty": "Free software under the GNU Affero General Public License v3.0, without any warranty.",
+    "source": "Source code",
+    "license": "Licence (AGPL-3.0)"
   }
 }
