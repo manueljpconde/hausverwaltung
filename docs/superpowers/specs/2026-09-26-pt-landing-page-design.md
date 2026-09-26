@@ -158,8 +158,9 @@ reviews it in the implemented page.
   scrolling; text contrast ≥ 4.5:1 over the poster and over representative video frames (dark
   gradient sized accordingly); decorative images `alt=""`, screenshot with descriptive alt;
   keyboard-operable pause button (WCAG 2.2.2).
-- Performance budget: LCP < 2.5 s on mobile (Lighthouse mobile profile); poster ≤ 150 KB,
-  screenshot ≤ 200 KB (WebP); video only ≥ 768 px, `preload="none"` until visible; no web fonts
+- Performance budget: LCP < 2.5 s on mobile (Lighthouse mobile profile, median of 5 runs);
+  poster ≤ 150 KB, screenshot ≤ 200 KB (WebP); video element only mounted in the browser at
+  ≥ 768 px without reduced motion (nothing downloaded otherwise); no web fonts
   (Arial); total transfer on mobile ≤ 600 KB.
 
 ## Error handling

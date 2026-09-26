@@ -32,7 +32,8 @@ export function BackgroundVideo({
   // einmalige zufällige Reihenfolge pro Mount
   const order = useMemo(() => [...sources].sort(() => Math.random() - 0.5), [sources]);
   const [i, setI] = useState(0);
-  const [paused, setPaused] = useState(false);
+  // Zustand kommt aus den Video-Ereignissen (Autoplay kann blockiert sein).
+  const [paused, setPaused] = useState(true);
   const [allowed, setAllowed] = useState(!mediaQuery);
   const ref = useRef<HTMLVideoElement>(null);
 
@@ -51,13 +52,8 @@ export function BackgroundVideo({
   const toggle = () => {
     const v = ref.current;
     if (!v) return;
-    if (v.paused) {
-      void v.play();
-      setPaused(false);
-    } else {
-      v.pause();
-      setPaused(true);
-    }
+    if (v.paused) v.play().catch(() => {});
+    else v.pause();
   };
 
   return (
@@ -71,6 +67,8 @@ export function BackgroundVideo({
         playsInline
         poster={poster}
         loop={single}
+        onPlay={() => setPaused(false)}
+        onPause={() => setPaused(true)}
         onEnded={() => {
           if (!single) setI((x) => (x + 1) % order.length);
         }}
