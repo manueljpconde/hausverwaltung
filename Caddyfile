@@ -20,3 +20,6 @@
 	@not_marketing not path /marketing
 	log_skip @not_marketing
 }
+
+# Weitere Sites (z. B. Demo-Stack) aus /opt/havewa/sites/*.caddy; leer = nichts.
+import /etc/caddy/sites/*.caddy

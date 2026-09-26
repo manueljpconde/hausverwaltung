@@ -146,3 +146,50 @@ docker run --rm -e DOMAIN=realestate.crmware.pt -v "$PWD/Caddyfile:/etc/caddy/Ca
   caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
 docker compose -f docker-compose.registry.yml up -d --force-recreate --no-deps caddy
 ```
+
+## Demo stack (realestate-demo)
+
+`https://realestate-demo.crmware.pt` runs a second stack on the same server for sales demos: same
+image, its **own** database (`havewa_demo`) and document storage, so the main devbox data is never
+touched. Files: `docker-compose.demo.yml`, `deploy/demo-reset.sh`, `deploy/demo/realestate-demo.caddy`.
+
+- Services are named `demo-app` / `demo-db` (not `app` / `db`): only the app joins the main
+  network `havewa_default`, where service names are DNS aliases next to the main stack.
+- Memory caps: app 512 MB, database 256 MB. The database port is published on `127.0.0.1:5433`
+  only, for the seed.
+- The main Caddyfile imports `/opt/havewa/sites/*.caddy`; an empty folder changes nothing.
+
+**One-time setup** (DNS: A record `realestate-demo` → `2.28.113.150`):
+
+```bash
+# 2 GB swap (none by default; avoids OOM kills with two stacks)
+fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
+
+mkdir -p /opt/havewa-demo /opt/havewa/sites
+# copy docker-compose.demo.yml + deploy/demo-reset.sh → /opt/havewa-demo/
+# copy deploy/demo/realestate-demo.caddy → /opt/havewa/sites/
+# copy the new Caddyfile + docker-compose.registry.yml → /opt/havewa/, then recreate Caddy
+cat > /opt/havewa-demo/.env <<ENV
+HAVEWA_TAG=$(grep ^HAVEWA_TAG /opt/havewa/.env | cut -d= -f2)
+DEMO_DOMAIN=realestate-demo.crmware.pt
+DEMO_DB_PASSWORD=$(openssl rand -hex 24)
+DEMO_AUTH_SECRET=$(openssl rand -hex 32)
+CRMWARE_DEMO_PASSWORD=
+ENV
+chmod 600 /opt/havewa-demo/.env
+```
+
+The owner sets `CRMWARE_DEMO_PASSWORD` (≥ 12 characters) in that file; it is never printed or
+committed. Log-ins for the demo users are listed in `docs/crmware-demo.md`.
+
+**Reset and seed** (after each presentation, or after changing `HAVEWA_TAG`):
+
+```bash
+bash /opt/havewa-demo/demo-reset.sh
+```
+
+It deletes the demo volumes, starts the stack, waits for the migrations, runs
+`prisma/seed-crmware-demo.ts` with the same image from the host (`NODE_ENV=development`,
+`ALLOW_DEMO_SEED=1`, database `127.0.0.1:5433/havewa_demo`) and then `--validate`. It never runs
+a compose command on the main stack.

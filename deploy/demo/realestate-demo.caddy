@@ -1,0 +1,5 @@
+# Demo-Stack (docker-compose.demo.yml). Auf dem Server nach /opt/havewa/sites/ kopieren.
+realestate-demo.crmware.pt {
+	reverse_proxy havewa-demo-app:3000
+	encode zstd gzip
+}

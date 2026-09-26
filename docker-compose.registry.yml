@@ -48,6 +48,7 @@ services:
       DOMAIN: "${DOMAIN}"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./sites:/etc/caddy/sites:ro
       - caddy-data:/data
       - caddy-config:/config
 
