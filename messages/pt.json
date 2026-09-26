@@ -21,7 +21,7 @@
   },
   "landing": {
     "meta": {
-      "title": "{app} — Gestão de arrendamentos e condomínios",
+      "title": "{app} | Gestão de arrendamentos e condomínios",
       "description": "Imóveis, frações, contratos, quotas e assembleias num só sistema, com portal para inquilinos e condóminos."
     },
     "skip": "Saltar para o conteúdo",
@@ -31,8 +31,8 @@
     },
     "hero": {
       "title": "Arrendamentos e condomínios, num só sistema.",
-      "subtitle": "Imóveis, frações, contratos, quotas e assembleias organizados num só lugar — com portal para inquilinos e condóminos.",
-      "fit": "Para gestores de arrendamento e administradores de condomínios — use apenas as áreas de que precisa.",
+      "subtitle": "Imóveis, frações, contratos, quotas e assembleias organizados num só lugar, com portal para inquilinos e condóminos.",
+      "fit": "Para gestores de arrendamento e administradores de condomínios. Use apenas as áreas de que precisa.",
       "cta": "Fale connosco sobre a gestão imobiliária",
       "secondary": "Ver funcionalidades"
     },
@@ -70,7 +70,7 @@
     "product": {
       "title": "O produto",
       "alt": "Painel da aplicação com imóveis em arrendamento e em condomínio, rendas, valores em aberto e pedidos",
-      "caption": "Painel com arrendamentos e condomínios, rendas, valores em aberto e pedidos — dados de demonstração."
+      "caption": "Painel com arrendamentos e condomínios, rendas, valores em aberto e pedidos (dados de demonstração)."
     },
     "trust": {
       "title": "Porquê {app}",
