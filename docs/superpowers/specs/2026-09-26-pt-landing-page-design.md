@@ -223,6 +223,6 @@ crmware.pt only. Not applicable for tenant isolation, billing atomicity, unscope
 locks, bypassable auth, leaked internal fields.
 
 Personal data (GDPR): the new Caddy access log is limited to `/marketing` and stores no IP
-address, no headers, no cookies — only timestamp, method, path, status, size and duration —
-with 90-day retention. Leads are collected on crmware.pt under that site's privacy policy and
+address, no headers, no cookies and no query string — only timestamp, method, path, status, size
+and duration — rotated daily with 90-day retention. Leads are collected on crmware.pt under that site's privacy policy and
 consent checkbox, not by this app.

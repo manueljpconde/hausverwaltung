@@ -1,0 +1,255 @@
+{
+  "status": "shared CrmWare asset library; local article-visual skill enabled",
+  "repository": "https://github.com/Nexvyn/runeicons",
+  "commit": "f649e467d1bc9f272aae3f8daa329d4c924e7340",
+  "license": "Apache-2.0",
+  "copyright": "Copyright 2026 Runeicons",
+  "date": "2026-09-14",
+  "issue": "https://github.com/manueljpconde/crmware-website/issues/261",
+  "palette": {
+    "black": "#000000",
+    "teal": "#53959c",
+    "lime": "#becd2f",
+    "red": "#bc2d1f",
+    "beige": "#e9decf"
+  },
+  "paletteRules": {
+    "black": "estrutura e neutro",
+    "teal": "sistemas, ligação e detalhe",
+    "lime": "progresso, resultado e validação",
+    "red": "risco, erro e bloqueio",
+    "beige": "fundo de apoio"
+  },
+  "icons": [
+    {
+      "id": "contact",
+      "label": "Clientes",
+      "meaning": "Relação comercial e contacto",
+      "variants": {
+        "outline": {
+          "file": "outline/contact.svg",
+          "source": "public/normal/messaging/contact.svg",
+          "sourceSha256": "a1ecbce87f6aabe20f94a4d273044359a57ac2c7065f70a47bea5f89abe94883",
+          "sha256": "c101bfcebbcb8130929f324eb8955f47c0a271f721f9c30188957c9a7d4dde05"
+        },
+        "duotone": {
+          "file": "duotone/contact.svg",
+          "source": "public/duotone/messaging/contact.svg",
+          "sourceSha256": "d43851fd926643209ed4f2144de7a0d354135fbaf8b0065e997c47de68485261",
+          "sha256": "135433a7be1b491d825025de17054cfeb658bddc75ddd4359e590a9a328f9d3b"
+        }
+      }
+    },
+    {
+      "id": "users",
+      "label": "Equipas",
+      "meaning": "Colaboração e responsabilidade",
+      "variants": {
+        "outline": {
+          "file": "outline/users.svg",
+          "source": "public/normal/identity/users.svg",
+          "sourceSha256": "54b478321bc1139cb8f8a22f00548c1fdca7c641ef97460b245b89dbe9bc5657",
+          "sha256": "ba6c3cad04853e16b0562ceae65b1ac787b894a2daac97bb7023033de64825b8"
+        },
+        "duotone": {
+          "file": "duotone/users.svg",
+          "source": "public/duotone/identity/users.svg",
+          "sourceSha256": "a05e53b725001bb2353d356bee4c6351d27f3ebce185f708d3c73698e35089b0",
+          "sha256": "b7d555c65fc2c14641c1617537f569d811384302a297e21a449b2894e6cf5fde"
+        }
+      }
+    },
+    {
+      "id": "git-branch",
+      "label": "Processos",
+      "meaning": "Percursos e decisões",
+      "variants": {
+        "outline": {
+          "file": "outline/git-branch.svg",
+          "source": "public/normal/code/git-branch.svg",
+          "sourceSha256": "d017e1149d08c9b2f80ffd34a8caf8d4a73a913880947fca4faf508a69b33e7f",
+          "sha256": "2d51d474c3a9bb8b94f08e633a172ee41623e0fd0243bf335c187b2eab55e9e3"
+        },
+        "duotone": {
+          "file": "duotone/git-branch.svg",
+          "source": "public/duotone/code/git-branch.svg",
+          "sourceSha256": "f343e122be87e9d6aec67c4e194360281ac2dd24f87a46f5991d92e8693c55d1",
+          "sha256": "425188c7c9b7b278fbdaeaeedd1a41956d62f4640fce6ac5968285a7fd931eba"
+        }
+      }
+    },
+    {
+      "id": "zap",
+      "label": "Automação",
+      "meaning": "Execução automática",
+      "variants": {
+        "outline": {
+          "file": "outline/zap.svg",
+          "source": "public/normal/other/zap.svg",
+          "sourceSha256": "3bd4ba311f04d9a6bc865040c3ab2f4df4d2fa486e46dab21569797a60cb0fa2",
+          "sha256": "917fe164a191aa8b249e83aa0959706332118a56dc38e318aaba73b644510e30"
+        },
+        "duotone": {
+          "file": "duotone/zap.svg",
+          "source": "public/duotone/other/zap.svg",
+          "sourceSha256": "ac36ae8b634b138d785602d6ea070fb33a58ea45a393916c2d116b5f1ac5edcb",
+          "sha256": "00060ee185a7a5fe7fdabc6cf6cf679e558dc3cbd0cf816cbc7aae086ca430d7"
+        }
+      },
+      "notes": "Upstream duotone is a single filled path; shown in teal, not a fabricated second tone."
+    },
+    {
+      "id": "link",
+      "label": "Integração",
+      "meaning": "Ligação entre sistemas",
+      "variants": {
+        "outline": {
+          "file": "outline/link.svg",
+          "source": "public/normal/code/link.svg",
+          "sourceSha256": "90c7aa902959b95d9f87590d4cb5ef63478c2ec86ea6f6d8ce07f0b157c27c84",
+          "sha256": "83499456781f25df9725c40e3a5210a3800973b4337ac6642fb02e681afb0e4b"
+        },
+        "duotone": {
+          "file": "duotone/link.svg",
+          "source": "public/duotone/code/link.svg",
+          "sourceSha256": "d111c83d8cee2cfaddcd11f52707f82df63acc8ae2ab660245dcdd044d4da920",
+          "sha256": "f02d7db4a7baeebe7fc57eb643b62a5ef962d93dbbdc9679449c65a95190da16"
+        }
+      }
+    },
+    {
+      "id": "server",
+      "label": "Dados",
+      "meaning": "Sistemas e armazenamento",
+      "variants": {
+        "outline": {
+          "file": "outline/server.svg",
+          "source": "public/normal/code/server.svg",
+          "sourceSha256": "fe82b260bb933a19a084f808159d8b7432799afa99d2d9cd26ed4ce72c9858ed",
+          "sha256": "1c47ad81b99f0524b09975ce7cc73ad3d270a077692358d3cb6a6eb7a15d5b2e"
+        },
+        "duotone": {
+          "file": "duotone/server.svg",
+          "source": "public/duotone/code/server.svg",
+          "sourceSha256": "9b18ed86fe9cc3f2e35f6eb197debbfb7d989aa52b1b0243de488356993f50b9",
+          "sha256": "b5c3847146400f5cad152e13bcebddad6b2f8bdfd16b0cca638b3f1b866fe0ca"
+        }
+      }
+    },
+    {
+      "id": "shield-check",
+      "label": "Segurança",
+      "meaning": "Controlo e proteção",
+      "variants": {
+        "outline": {
+          "file": "outline/shield-check.svg",
+          "source": "public/normal/identity/shield-check.svg",
+          "sourceSha256": "aef9e408de89f446645e61f450a4f7017b7db60ac7513c1752e8af39c26bb4e0",
+          "sha256": "841a50912dd6c887bfb56a72793b70726ef953c72718dc7f2404f7877619e099"
+        },
+        "duotone": {
+          "file": "duotone/shield-check.svg",
+          "source": "public/duotone/identity/shield-check.svg",
+          "sourceSha256": "6788eabe1644fa961ee0f39ec450db5e0f0fb77fcb8916dc2b987f2e4d71dfb3",
+          "sha256": "70b12cb1ea6eab30023d147025462148873000693286545373e1e6ab843e4e2a"
+        }
+      }
+    },
+    {
+      "id": "file-text",
+      "label": "Documentos",
+      "meaning": "Propostas e registos",
+      "variants": {
+        "outline": {
+          "file": "outline/file-text.svg",
+          "source": "public/normal/documents/file-text.svg",
+          "sourceSha256": "0787cf94fea71eb3cd22f124f71e7a5d7e72b16d99efd5830a0bcf10d1372467",
+          "sha256": "6435b7b078d8b271561ec5f705f0f51cbb80043b1d36bf9bb1a956894311cf88"
+        },
+        "duotone": {
+          "file": "duotone/file-text.svg",
+          "source": "public/duotone/documents/file-text.svg",
+          "sourceSha256": "aeecaef8def2e1b74e6b31e5d3fb6b5b285172e74eae935d469f1f88bc0d7ace",
+          "sha256": "b2581b41b5a1630e8ca42cb12aea097a0f2826d1f2a4b53017fbf76f67126bb4"
+        }
+      }
+    },
+    {
+      "id": "clock",
+      "label": "Tempo",
+      "meaning": "Prazos e duração",
+      "variants": {
+        "outline": {
+          "file": "outline/clock.svg",
+          "source": "public/normal/schedule/clock.svg",
+          "sourceSha256": "26ad64a304481f65bd437720c39a73bbb41db3c72e9aae7c9b8338ef25c9fec9",
+          "sha256": "7f43c797c9d194e3a83e0559387efbcef3d1a7d2bbdb0a51e7a19ed9244889a5"
+        },
+        "duotone": {
+          "file": "duotone/clock.svg",
+          "source": "public/duotone/schedule/clock.svg",
+          "sourceSha256": "cbfdd636b24edbdeb5c77919f5b1bae38f11fe701ba8edcaf21ad097c481ef83",
+          "sha256": "328418b9ddd6dcf9deafb293c5de3681fd7a66b3a562dbcd6149df1c9455c449"
+        }
+      }
+    },
+    {
+      "id": "chart-line",
+      "label": "Resultados",
+      "meaning": "Evolução de indicadores",
+      "variants": {
+        "outline": {
+          "file": "outline/chart-line.svg",
+          "source": "public/normal/metrics/chart-line.svg",
+          "sourceSha256": "0d8a14fdc962ab461d877d32513f0ebe770f40e2975622dce8f75b10fb7e1956",
+          "sha256": "2b2c1291d5c255384dd01c2fdc6bcd2c309c44d78417fa178c3968974d4da192"
+        },
+        "duotone": {
+          "file": "duotone/chart-line.svg",
+          "source": "public/duotone/metrics/chart-line.svg",
+          "sourceSha256": "6d54fea23cc3805b0f065ded297b8894e9b51f4ad679048839b4a42f32fe64e4",
+          "sha256": "6bc0127963a20930ced91532e1666802f68cb3ca349c572fa559ad3e10fa9305"
+        }
+      }
+    },
+    {
+      "id": "triangle-alert",
+      "label": "Risco",
+      "meaning": "Exceção que exige atenção",
+      "variants": {
+        "outline": {
+          "file": "outline/triangle-alert.svg",
+          "source": "public/normal/indicators/triangle-alert.svg",
+          "sourceSha256": "3dba82e5333b0db4212e9ef5ca501d280fc081b5aa616bcad8ee038b60b949f9",
+          "sha256": "4578af835f19f98cbd7a17fd8648f081a7b2124aeccb899784fe9f5bf6df86b0"
+        },
+        "duotone": {
+          "file": "duotone/triangle-alert.svg",
+          "source": "public/duotone/indicators/triangle-alert.svg",
+          "sourceSha256": "d702cc0719682526596cb5013e364c44e1528bec846a2d32cd59acac7f38aa06",
+          "sha256": "398380df1f2b7a9e766204937af0b4d26741a117dc2d4c2575bcfa75401bab22"
+        }
+      }
+    },
+    {
+      "id": "circle-check",
+      "label": "Validação",
+      "meaning": "Verificação concluída",
+      "variants": {
+        "outline": {
+          "file": "outline/circle-check.svg",
+          "source": "public/normal/indicators/circle-check.svg",
+          "sourceSha256": "b78a846c8534437d60d39d951d138657af0fdd6679a61e18f500666e0c407415",
+          "sha256": "4b20aebc6197a707d044ce8e89cbdcd527072904fba96149f0b62f527f9d3b48"
+        },
+        "duotone": {
+          "file": "duotone/circle-check.svg",
+          "source": "public/duotone/indicators/circle-check.svg",
+          "sourceSha256": "7034ab2bd193b5a6b714b16f10ffcd5ed064ce752857a57b345bce61f5d4d677",
+          "sha256": "06f719ffabde31b598a5c5d77c424eac224f7b0cf3a7ada8b9f0c1497ca30f9e"
+        }
+      },
+      "notes": "Upstream duotone is a filled circle with a white check."
+    }
+  ]
+}

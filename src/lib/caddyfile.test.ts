@@ -14,4 +14,9 @@ describe("Caddy-Zugriffslog /marketing (#33)", () => {
     expect(caddy).toContain("@not_marketing not path /marketing");
     expect(caddy).toContain("log_skip @not_marketing");
   });
+
+  it("ohne Query-String (z. B. gclid) und mit täglicher Rotation, damit die 90 Tage greifen", () => {
+    expect(caddy).toContain('request>uri regexp "\\?.*$" ""');
+    expect(caddy).toContain("roll_interval 24h");
+  });
 });

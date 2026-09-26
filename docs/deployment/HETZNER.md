@@ -125,7 +125,7 @@ Tear down: `hcloud server delete havewa` (billed hourly until deleted), then rem
 ## Landing page visits (#33)
 
 Caddy logs only requests to `/marketing` to `/data/access-marketing.log` (volume `caddy-data`) —
-without IP address, headers or cookies; rotated files are kept 90 days. Bots cannot be filtered
+without IP address, headers, cookies or query string; rotated daily, files kept 90 days. Bots cannot be filtered
 out (no user agent), so the count is an upper bound. Requests per day:
 
 ```bash

@@ -36,4 +36,13 @@ describe("Landing-Assets (#33)", () => {
     expect(statSync(shot).size).toBeLessThanOrEqual(200 * 1024);
     expect(readFileSync(shot).subarray(8, 12).toString()).toBe("WEBP");
   });
+
+  it("Rune-Icons (Apache-2.0) werden mit Lizenztext und Herkunft ausgeliefert", () => {
+    const license = readFileSync(pub("/brand/crmware/icons/LICENSE"), "utf8");
+    expect(license).toContain("Apache License");
+    expect(license).toContain("Version 2.0");
+    const prov = JSON.parse(readFileSync(pub("/brand/crmware/icons/provenance.json"), "utf8"));
+    expect(prov.license).toBe("Apache-2.0");
+    expect(prov.repository).toMatch(/runeicons/);
+  });
 });
