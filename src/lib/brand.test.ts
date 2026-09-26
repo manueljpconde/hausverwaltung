@@ -23,7 +23,7 @@ describe("Produktname aus einer Quelle (#18)", () => {
     for (const locale of ["de", "en", "pt"]) {
       const m = JSON.parse(read(`messages/${locale}.json`));
       expect(m.app.name).toBeUndefined();
-      for (const text of [m.about.title, m.about.betaNote, m.setup.welcomeTitle, m.fiscalWorkaround.saft]) {
+      for (const text of [m.about.title, m.setup.welcomeTitle, m.fiscalWorkaround.saft]) {
         expect(text).toContain("{app}");
       }
       // Einzige erlaubte Nennung: das Originalwerk im AGPL-Hinweis — fest, ohne {app},
@@ -63,5 +63,63 @@ describe("Seitentitel und -beschreibung je Sprache (#18)", () => {
       expect(app.tagline).toBeTruthy();
       expect(app.description).toBeTruthy();
     }
+  });
+});
+
+describe("Schreibweise der Marke (#24)", () => {
+  it("CrmWare — nirgends als CRMware/CRMWare in sichtbaren Texten", () => {
+    const files = [
+      "messages/de.json", "messages/en.json", "messages/pt.json",
+      "README.md", "README.de.md",
+      "marketing/index.template.html", "public/marketing/index.html",
+      "src/lib/brand.ts",
+    ];
+    for (const f of files) expect(read(f), f).not.toMatch(/CRMware|CRMWare/);
+    expect(APP_NAME).toBe("CrmWare");
+    expect(APP_SLUG).toBe("crmware");
+  });
+});
+
+describe("Login-Überschrift ohne Namen (#24)", () => {
+  it("keine doppelten Schlüssel in den Sprachdateien", () => {
+    // JSON.parse behält bei doppelten Schlüsseln stillschweigend den letzten — daher je Ebene zählen.
+    for (const locale of ["de", "en", "pt"]) {
+      const dups: string[] = [];
+      const stack: Set<string>[] = [new Set()];
+      for (const line of read(`messages/${locale}.json`).split("\n")) {
+        const key = line.match(/^\s*"([^"]+)":/)?.[1];
+        if (key) {
+          const level = stack[stack.length - 1];
+          if (level.has(key)) dups.push(`${locale}:${key}`);
+          level.add(key);
+        }
+        if (/\{\s*$/.test(line)) stack.push(new Set());
+        if (/^\s*\},?\s*$/.test(line)) stack.pop();
+      }
+      expect(dups).toEqual([]);
+    }
+  });
+
+  it("zeigt nur den Gruß, nicht Mandanten- oder Produktname", () => {
+    const login = read("src/app/[locale]/login/page.tsx");
+    expect(login).toContain('t("login.greeting")');
+    expect(login).not.toContain("welcomeTo");
+    const greet = { de: "Willkommen", en: "Welcome", pt: "Bem-vindo" } as const;
+    for (const [locale, word] of Object.entries(greet)) {
+      const l = JSON.parse(read(`messages/${locale}.json`)).login;
+      expect(l.greeting).toBe(word);
+      expect(l.welcomeTo).toBeUndefined();
+    }
+  });
+});
+
+describe("Marke ist ein Unternehmen, nicht das Produkt (#24)", () => {
+  it("Beta-Hinweis nennt keine Marke; pt ohne Artikel vor dem Namen", () => {
+    for (const locale of ["de", "en", "pt"]) {
+      expect(JSON.parse(read(`messages/${locale}.json`)).about.betaNote).not.toContain("{app}");
+    }
+    const pt = JSON.parse(read("messages/pt.json"));
+    expect(pt.about.title).toBe("Sobre {app}");
+    expect(pt.about.betaNote).toBe("Esta aplicação está em fase de testes beta. As funcionalidades podem mudar.");
   });
 });

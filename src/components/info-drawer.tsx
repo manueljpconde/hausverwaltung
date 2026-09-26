@@ -1,6 +1,6 @@
 "use client";
 
-import { Info, ExternalLink, Building2 } from "lucide-react";
+import { Info, Building2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,10 +10,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { APP_VERSION, APP_VERSION_LABEL, APP_BUILD, APP_SHA, SOURCE_URL, LICENSE_URL } from "@/lib/version";
-import { APP_NAME } from "@/lib/brand";
-
-const GILDE_URL = "https://www.gilde.org";
-const GILDE_LOGO = "https://www.gilde.org/gilde/logo.svg";
+import { APP_NAME, BRAND_LOGO_URL } from "@/lib/brand";
 
 export function InfoDrawer({ tenantName }: { tenantName: string }) {
   const t = useTranslations("about");
@@ -32,9 +29,9 @@ export function InfoDrawer({ tenantName }: { tenantName: string }) {
           <div className="pointer-events-none absolute -right-10 -top-12 size-48 rounded-full bg-white/15 blur-2xl" />
           <div className="pointer-events-none absolute -bottom-14 -left-8 size-40 rounded-full bg-fuchsia-500/25 blur-3xl" />
           <div className="relative flex flex-col items-center text-center">
-            <div className="grid size-56 place-items-center rounded-3xl bg-white/15 shadow-lg ring-1 ring-white/30 backdrop-blur">
+            <div className="grid size-56 place-items-center rounded-3xl bg-white p-4 shadow-lg ring-1 ring-white/30">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt={APP_NAME} className="size-48 rounded-2xl object-contain" />
+              <img src={BRAND_LOGO_URL} alt={APP_NAME} className="size-48 rounded-2xl object-contain" />
             </div>
             <SheetTitle className="mt-4 text-2xl font-semibold tracking-tight text-white">
               {APP_NAME}
@@ -55,7 +52,7 @@ export function InfoDrawer({ tenantName }: { tenantName: string }) {
         <div className="space-y-5 p-5">
           {/* Beta-Hinweis */}
           <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-800 dark:text-amber-300">
-            {t("betaNote", { app: APP_NAME })}
+            {t("betaNote")}
           </p>
 
           {/* Version & Mandant */}
@@ -79,51 +76,26 @@ export function InfoDrawer({ tenantName }: { tenantName: string }) {
             </div>
           </dl>
 
-          {/* Rechtliche Hinweise (AGPL-3.0 §5d, §13) */}
-          <div className="space-y-1.5 rounded-xl border px-3 py-2.5 text-xs text-muted-foreground">
-            <p>{legal("copyright")}</p>
-            <p>{legal("warranty")}</p>
-            <p className="flex gap-4 pt-1">
-              <a href={SOURCE_URL} target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline-offset-4 hover:underline">
+          {/* Quellcode, Lizenz und rechtliche Hinweise (AGPL-3.0 §5d, §13) — Hinweis aufklappbar, ohne Seitenwechsel */}
+          <div className="space-y-2 px-1 text-xs">
+            <p className="flex flex-wrap gap-x-4 gap-y-1">
+              <a href={SOURCE_URL} target="_blank" rel="noopener noreferrer" className="font-medium underline-offset-4 hover:underline">
                 {legal("source")}
               </a>
-              <a href={LICENSE_URL} target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline-offset-4 hover:underline">
+              <a href={LICENSE_URL} target="_blank" rel="noopener noreferrer" className="font-medium underline-offset-4 hover:underline">
                 {legal("license")}
               </a>
             </p>
+            <details>
+              <summary className="cursor-pointer font-medium underline-offset-4 hover:underline">{legal("notice")}</summary>
+              <div className="mt-2 space-y-1.5 text-muted-foreground">
+                <p>{legal("copyright")}</p>
+                <p>{legal("warranty")}</p>
+              </div>
+            </details>
           </div>
-
-          {/* Gilde-Signatur mit animiertem Logo */}
-          <a
-            href={GILDE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="gilde-sig group mt-2 flex flex-col items-center gap-2 rounded-xl border bg-gradient-to-b from-muted/40 to-transparent px-4 py-5 text-center transition-colors hover:border-primary/40"
-          >
-            <span className="text-[11px] uppercase tracking-widest text-muted-foreground">{t("madeBy")}</span>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={GILDE_LOGO} alt="Gilde" className="gilde-logo h-10 w-auto" />
-            <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground group-hover:text-foreground">
-              www.gilde.org <ExternalLink className="size-3" />
-            </span>
-          </a>
         </div>
 
-        <style>{`
-          @keyframes gildeFloat { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-5px) rotate(-2deg); } }
-          .gilde-logo {
-            animation: gildeFloat 4s ease-in-out infinite;
-            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.15));
-            transition: transform .4s ease, filter .4s ease;
-            transform-origin: center;
-          }
-          .gilde-sig:hover .gilde-logo {
-            animation-play-state: paused;
-            transform: scale(1.12) rotate(6deg);
-            filter: drop-shadow(0 8px 18px rgba(0,0,0,0.28));
-          }
-          @media (prefers-reduced-motion: reduce) { .gilde-logo { animation: none; } }
-        `}</style>
       </SheetContent>
     </Sheet>
   );

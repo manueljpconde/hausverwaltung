@@ -7,17 +7,17 @@
     "title": "About {app}",
     "tagline": "Property & HOA management",
     "beta": "Beta",
-    "betaNote": "{app} is in its beta testing phase. Features may change.",
+    "betaNote": "This application is in its beta testing phase. Features may change.",
     "version": "Version",
     "build": "Build",
-    "tenant": "Tenant",
-    "madeBy": "Built by"
+    "tenant": "Tenant"
   },
   "legal": {
-    "copyright": "© 2026 Florian Gilde (HaVeWa) · Modifications © 2026 CRMware",
+    "copyright": "© 2026 Florian Gilde (HaVeWa) · Modifications © 2026 CrmWare",
     "warranty": "Free software under the GNU Affero General Public License v3.0, without any warranty.",
     "source": "Source code",
-    "license": "Licence (AGPL-3.0)"
+    "license": "Licence (AGPL-3.0)",
+    "notice": "Legal notice"
   },
   "common": {
     "search": "Search",
@@ -246,7 +246,7 @@
   "login": {
     "title": "Sign in",
     "subtitle": "Please sign in to continue.",
-    "welcomeTo": "Welcome to",
+    "greeting": "Welcome",
     "welcome": "Welcome back",
     "loadingApp": "Loading the app…",
     "email": "Email",

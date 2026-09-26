@@ -16,7 +16,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { APP_VERSION_LABEL, APP_VERSION_FULL } from "@/lib/version";
-import { APP_NAME } from "@/lib/brand";
+import { APP_NAME, BRAND_ICON_URL } from "@/lib/brand";
 
 export function AppSidebar({
   logoUrl,
@@ -36,7 +36,7 @@ export function AppSidebar({
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-1.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={logoUrl ?? "/icon.png"} alt={APP_NAME} className="size-8 rounded-md object-contain" />
+          <img src={logoUrl ?? BRAND_ICON_URL} alt={APP_NAME} className="size-8 rounded-md object-contain" />
           <div className="grid leading-tight">
             <span className="font-semibold">{APP_NAME}</span>
             <span className="text-xs text-muted-foreground">{t("app.tagline")}</span>

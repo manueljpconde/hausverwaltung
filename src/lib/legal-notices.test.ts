@@ -19,23 +19,38 @@ describe("AGPL-3.0: Quellcode-Angebot und rechtliche Hinweise (#14)", () => {
     for (const locale of ["de", "en"]) {
       const legal = JSON.parse(read(`messages/${locale}.json`)).legal;
       expect(legal.copyright).toContain("Florian Gilde");
-      expect(legal.copyright).toContain("CRMware");
+      expect(legal.copyright).toContain("CrmWare");
       expect(legal.warranty).toMatch(/Affero General Public License/);
       expect(legal.source).toBeTruthy();
       expect(legal.license).toMatch(/AGPL-3\.0/);
+      expect(legal.notice).toBeTruthy();
     }
   });
 
-  it("Info-Drawer (Verwaltung und Portal) zeigt alle Hinweise und beide Links", () => {
-    const src = read("src/components/info-drawer.tsx");
-    for (const needle of ["SOURCE_URL", "LICENSE_URL", 'legal("copyright"', 'legal("warranty")', 'legal("source")', 'legal("license")']) {
+  it("Seite „Aviso legal“ zeigt Copyright, Gewährleistungsausschluss, Lizenz und Quellcode", () => {
+    const src = read("src/app/[locale]/legal/page.tsx");
+    for (const needle of ["SOURCE_URL", "LICENSE_URL", 't("legal.copyright")', 't("legal.warranty")', 't("legal.source")', 't("legal.license")', 't("legal.notice")']) {
       expect(src).toContain(needle);
+    }
+    // öffentlich: kein Login-Zwang (auch für Portal-Nutzer vor der Anmeldung)
+    expect(src).not.toMatch(/requireUser|auth\(\)/);
+  });
+
+  it("Info-Drawer (Verwaltung und Portal): Aviso legal aufklappbar im Drawer, ohne Seitenwechsel; kein Gilde-Kasten", () => {
+    const src = read("src/components/info-drawer.tsx");
+    for (const needle of ["SOURCE_URL", "LICENSE_URL", "<details", "<summary", 'legal("notice")', 'legal("copyright")', 'legal("warranty")', 'legal("source")', 'legal("license")']) {
+      expect(src).toContain(needle);
+    }
+    expect(src).not.toContain('href="/legal"');
+    expect(src).not.toMatch(/gilde|madeBy/i);
+    for (const locale of ["de", "en", "pt"]) {
+      expect(JSON.parse(read(`messages/${locale}.json`)).about.madeBy).toBeUndefined();
     }
   });
 
   it("Login-Seite bietet Quellcode und Lizenz schon vor der Anmeldung an", () => {
     const src = read("src/app/[locale]/login/page.tsx");
-    for (const needle of ["SOURCE_URL", "LICENSE_URL", 't("legal.source")', 't("legal.license")']) {
+    for (const needle of ["SOURCE_URL", "LICENSE_URL", 't("legal.source")', 't("legal.license")', 'href="/legal"', 't("legal.notice")']) {
       expect(src).toContain(needle);
     }
   });

@@ -5,7 +5,7 @@ import { listBackgroundVideos } from "@/lib/videos";
 import { BackgroundVideo } from "@/components/background-video";
 import { SetupWizard } from "@/components/setup-wizard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { APP_NAME } from "@/lib/brand";
+import { APP_NAME, BRAND_LOGO_URL, BRAND_ICON_URL } from "@/lib/brand";
 
 export default async function SetupPage() {
   if (!(await needsSetup())) redirect("/login");
@@ -24,7 +24,7 @@ export default async function SetupPage() {
       {/* Produkt-Icon unten rechts im Video-Bereich */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/marketing/icon.png"
+        src={BRAND_ICON_URL}
         alt={APP_NAME}
         className="pointer-events-none absolute bottom-6 right-6 h-16 w-auto object-contain opacity-90 drop-shadow-lg"
       />
@@ -32,7 +32,7 @@ export default async function SetupPage() {
       <Card className="w-full max-w-xl border-white/10 bg-card/95 shadow-2xl backdrop-blur">
         <CardHeader className="items-center text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt={APP_NAME} className="mx-auto mb-2 h-48 w-auto object-contain drop-shadow" />
+          <img src={BRAND_LOGO_URL} alt={APP_NAME} className="mx-auto mb-2 h-48 w-auto object-contain drop-shadow" />
           <CardTitle className="text-xl">{t("setup.title")}</CardTitle>
           <CardDescription>{t("setup.subtitle")}</CardDescription>
         </CardHeader>

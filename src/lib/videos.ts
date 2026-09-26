@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { APP_SLUG } from "@/lib/brand";
+import { assertSlug } from "@/lib/brand-assets";
 
 const VIDEO = /\.(mp4|webm)$/i;
 
@@ -24,8 +25,7 @@ export async function listBackgroundVideos({
   baseDir = path.join(process.cwd(), "public", "videos"),
   slug = APP_SLUG,
 }: { baseDir?: string; slug?: string } = {}): Promise<string[]> {
-  // Nur ein einzelnes Pfadsegment — sonst könnte ein Slug aus public/videos herausführen.
-  if (!/^[a-z0-9-]+$/.test(slug)) throw new Error(`Ungültiger slug für Hintergrundvideos: ${JSON.stringify(slug)}`);
+  assertSlug(slug);
   const brand = await videosIn(baseDir, slug);
   return brand.length > 0 ? brand : videosIn(baseDir, "default");
 }
