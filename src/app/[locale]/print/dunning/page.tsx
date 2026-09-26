@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { money, date } from "@/lib/format";
 import { getDateLocale } from "@/lib/date-locale";
 import { PrintButton } from "@/components/print-button";
+import { ALLOCATIONS_FOR_BALANCE, chargeBalance, chargeLease } from "@/lib/charges";
 
 // Druckbare Mahnung / Zahlungserinnerung zu einer Sollstellung.
 export default async function PrintDunningPage({
@@ -21,30 +22,30 @@ export default async function PrintDunningPage({
   const chargeId = sp.chargeId;
   if (!chargeId) notFound();
 
+  const leaseInclude = {
+    unit: { include: { building: { include: { property: { include: { tenant: true } } } } } },
+    renters: { include: { person: true } },
+  };
   const charge = await prisma.charge.findFirst({
     where: { id: chargeId, tenantId: user.tenantId },
     include: {
-      payments: { select: { amount: true } },
       dunnings: { orderBy: { level: "desc" }, take: 1 },
-      lease: {
-        include: {
-          unit: { include: { building: { include: { property: { include: { tenant: true } } } } } },
-          renters: { include: { person: true } },
-        },
-      },
+      allocations: ALLOCATIONS_FOR_BALANCE,
+      lease: { include: leaseInclude },
+      areaAllocation: { select: { lease: { include: leaseInclude } } },
     },
   });
-  if (!charge || !charge.lease) notFound();
+  const lease = charge ? chargeLease(charge) : null;
+  if (!charge || !lease) notFound();
 
-  const paid = charge.payments.reduce((a, p) => a + Number(p.amount), 0);
-  const open = Number(charge.amount) - paid;
+  const { open } = chargeBalance(charge);
   const dun = charge.dunnings[0];
   const level = dun?.level ?? 1;
   const fee = dun ? Number(dun.fee) : 0;
   const total = open + fee;
-  const property = charge.lease.unit.building.property;
+  const property = lease.unit.building.property;
   const tenantName = property.tenant.name;
-  const renter = charge.lease.renters[0]?.person;
+  const renter = lease.renters[0]?.person;
   const title = level >= 2 ? `${level}. ${t("print.dunningTitle")}` : t("print.reminderTitle");
 
   return (
@@ -72,7 +73,7 @@ export default async function PrintDunningPage({
       <h1 className="mb-4 text-lg font-bold">{title}</h1>
 
       <p className="mb-4">
-        {t("print.dunningIntro", { unit: `${property.name} · ${charge.lease.unit.label}` })}
+        {t("print.dunningIntro", { unit: `${property.name} · ${lease.unit.label}` })}
       </p>
 
       <table className="mb-4 w-full border-collapse">

@@ -20,6 +20,7 @@ import { prisma } from "@/lib/prisma";
 import { money, date, toBcp47 } from "@/lib/format";
 import { getDateLocale } from "@/lib/date-locale";
 import { managementTypeMessageKey } from "@/lib/market";
+import { ALLOCATIONS_FOR_BALANCE, chargeBalance } from "@/lib/charges";
 import {
   Card,
   CardContent,
@@ -71,7 +72,7 @@ export default async function DashboardPage() {
       where: { tenantId, startDate: { lte: now }, OR: [{ endDate: null }, { endDate: { gte: now } }] },
       include: { components: { select: { amount: true } } },
     }),
-    prisma.charge.findMany({ where: { tenantId }, include: { payments: { select: { amount: true } } } }),
+    prisma.charge.findMany({ where: { tenantId }, include: { allocations: ALLOCATIONS_FOR_BALANCE } }),
     prisma.ticket.count({ where: { tenantId, status: { not: "ERLEDIGT" } } }),
     prisma.maintenanceContract.findMany({ where: { tenantId, nextDue: { lt: now } }, select: { id: true } }),
     prisma.task.findMany({ where: { tenantId, done: false }, orderBy: [{ dueDate: "asc" }], take: 8 }),
@@ -96,7 +97,7 @@ export default async function DashboardPage() {
   let totalOpen = 0;
   let overdueCount = 0;
   for (const c of charges) {
-    const open = Number(c.amount) - c.payments.reduce((a, p) => a + Number(p.amount), 0);
+    const { open } = chargeBalance(c);
     if (open > 0.001) {
       totalOpen += open;
       if (c.dueDate < now) overdueCount++;

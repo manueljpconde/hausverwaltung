@@ -41,3 +41,10 @@ export function chargeSubject(c: SubjectInput): string {
   if (c.areaAllocation) return c.areaAllocation.label ?? c.areaAllocation.lease?.unit.label ?? "";
   return c.lease?.unit.label ?? "";
 }
+
+// Art(en) der Sollstellungen einer Zahlung: eine → diese, mehrere → MIXED, keine → null.
+export function paymentChargeType(allocations: { charge: { type: string } }[]): string | "MIXED" | null {
+  const types = new Set(allocations.map((a) => a.charge.type));
+  if (types.size === 0) return null;
+  return types.size === 1 ? [...types][0] : "MIXED";
+}

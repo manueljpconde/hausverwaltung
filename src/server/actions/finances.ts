@@ -21,6 +21,7 @@ import { saveFile } from "@/lib/storage";
 import { money } from "@/lib/format";
 import { dunningDocument } from "@/lib/dunning";
 import { chargeHasHistory, deletePaymentWithAllocations, matchOpenCharge, openChargesForMatching, PaymentError, recordPayment, unappliedPart } from "@/lib/payments";
+import { ALLOCATIONS_FOR_BALANCE, chargeBalance, chargeLease } from "@/lib/charges";
 
 // Standard-Kontenrahmen für den Mandanten anlegen (idempotent).
 export async function seedDefaultAccounts(): Promise<void> {
@@ -195,10 +196,14 @@ export async function createDunning(_p: ActionState, fd: FormData): Promise<Acti
   const user = await requireWriter();
   const chargeId = String(fd.get("chargeId") ?? "");
   const charge = await prisma.charge.findFirst({
-    where: { id: chargeId, tenantId: user.tenantId },
-    include: { dunnings: { orderBy: { date: "desc" }, take: 1 } },
+    where: { id: chargeId, tenantId: user.tenantId, status: "ISSUED" },
+    include: { dunnings: { orderBy: { date: "desc" }, take: 1 }, allocations: ALLOCATIONS_FOR_BALANCE },
   });
   if (!charge) return fail("Sollstellung nicht gefunden");
+  const { open } = chargeBalance(charge);
+  if (!(open > 0.005 && charge.dueDate < new Date())) {
+    return fail("Sollstellung ist nicht überfällig oder bereits ausgeglichen");
+  }
 
   // Nächste Stufe erst nach Ablauf der Frist seit der letzten Mahnung.
   const last = charge.dunnings[0];
@@ -224,34 +229,34 @@ export async function createDunning(_p: ActionState, fd: FormData): Promise<Acti
 export async function emailDunning(_p: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireWriter();
   const chargeId = String(fd.get("chargeId") ?? "");
+  const leaseInclude = {
+    unit: { include: { building: { include: { property: { include: { tenant: true } } } } } },
+    renters: { include: { person: true } },
+  };
   const charge = await prisma.charge.findFirst({
     where: { id: chargeId, tenantId: user.tenantId },
     include: {
-      payments: { select: { amount: true } },
       dunnings: { orderBy: { level: "desc" }, take: 1 },
-      lease: {
-        include: {
-          unit: { include: { building: { include: { property: { include: { tenant: true } } } } } },
-          renters: { include: { person: true } },
-        },
-      },
+      allocations: ALLOCATIONS_FOR_BALANCE,
+      lease: { include: leaseInclude },
+      areaAllocation: { select: { lease: { include: leaseInclude } } },
     },
   });
-  if (!charge || !charge.lease) return fail("Sollstellung nicht gefunden");
+  const lease = charge ? chargeLease(charge) : null;
+  if (!charge || !lease) return fail("Sollstellung nicht gefunden");
 
-  const paid = charge.payments.reduce((a, p) => a + Number(p.amount), 0);
-  const open = Number(charge.amount) - paid;
+  const { open } = chargeBalance(charge);
   const dun = charge.dunnings[0];
   const fee = dun ? Number(dun.fee) : 0;
   const level = dun?.level ?? 1;
-  const property = charge.lease.unit.building.property;
-  const renter = charge.lease.renters[0]?.person;
+  const property = lease.unit.building.property;
+  const renter = lease.renters[0]?.person;
   if (!renter?.email) return fail("Kein Mieter mit E-Mail-Adresse hinterlegt.");
 
   const built = dunningDocument({
     level,
     propertyName: property.name,
-    unitLabel: charge.lease.unit.label,
+    unitLabel: lease.unit.label,
     renterName: `${renter.firstName} ${renter.lastName}`,
     tenantName: property.tenant.name,
     chargeTypeLabel: charge.type,
@@ -263,7 +268,7 @@ export async function emailDunning(_p: ActionState, fd: FormData): Promise<Actio
   const title = built.title;
   const total = open + fee;
   const pdf = simplePdf(title, built.lines);
-  const name = `${title} - ${charge.lease.unit.label}.pdf`;
+  const name = `${title} - ${lease.unit.label}.pdf`;
   const storageKey = await saveFile(pdf, name);
   const doc = await prisma.document.create({
     data: {
@@ -286,7 +291,7 @@ export async function emailDunning(_p: ActionState, fd: FormData): Promise<Actio
       attachments: { create: [{ documentId: doc.id }] },
     },
   });
-  await audit(user, "CREATE", "EmailMessage", null, `${title} ${charge.lease.unit.label}`);
+  await audit(user, "CREATE", "EmailMessage", null, `${title} ${lease.unit.label}`);
   revalidatePath("/", "layout");
   return { ok: true };
 }

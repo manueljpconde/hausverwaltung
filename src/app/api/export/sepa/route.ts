@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { roleAllows } from "@/lib/rbac";
 import { toPain008, type SepaEntry } from "@/lib/adapters/sepa";
 import { APP_NAME, APP_SLUG } from "@/lib/brand";
+import { chargeBalance } from "@/lib/charges";
+import { chargesForLeases } from "@/lib/portal-charges";
 
 export async function GET() {
   const session = await auth();
@@ -19,9 +21,7 @@ export async function GET() {
     include: {
       person: {
         include: {
-          renters: {
-            include: { lease: { include: { charges: { include: { payments: { select: { amount: true } } } } } } },
-          },
+          renters: { select: { leaseId: true } },
         },
       },
     },
@@ -29,11 +29,11 @@ export async function GET() {
 
   const entries: SepaEntry[] = [];
   for (const m of mandates) {
+    const leaseIds = m.person.renters.map((r) => r.leaseId);
+    const charges = await chargesForLeases(tenantId, leaseIds);
     let open = 0;
-    for (const r of m.person.renters) {
-      for (const c of r.lease.charges) {
-        open += Number(c.amount) - c.payments.reduce((a, p) => a + Number(p.amount), 0);
-      }
+    for (const c of charges) {
+      open += chargeBalance(c).open;
     }
     open = Math.round(open * 100) / 100;
     if (open > 0) {

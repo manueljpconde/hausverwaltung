@@ -696,6 +696,7 @@
     "manualCharge": "Charge (manual)",
     "recordPayment": "Record payment",
     "partiallyApplied": "{applied} € applied, {unapplied} € left unapplied",
+    "mixedCharges": "Several charges",
     "mandates": "SEPA mandates",
     "newMandate": "New mandate",
     "noMandates": "No mandates.",

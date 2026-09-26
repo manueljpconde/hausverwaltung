@@ -3,6 +3,7 @@ import { actingTenantId } from "@/lib/acting-tenant";
 import { prisma } from "@/lib/prisma";
 import { roleAllows } from "@/lib/rbac";
 import { toDatevExtf, type DatevRow } from "@/lib/adapters/datev";
+import { paymentChargeType } from "@/lib/charges";
 
 export async function GET() {
   const session = await auth();
@@ -12,19 +13,22 @@ export async function GET() {
 
   const payments = await prisma.payment.findMany({
     where: { tenantId: (await actingTenantId(session.user)) },
-    include: { charge: true },
+    include: { allocations: { select: { charge: { select: { type: true } } } } },
     orderBy: { date: "asc" },
   });
 
-  const rows: DatevRow[] = payments.map((p) => ({
-    amount: Number(p.amount),
-    debitCredit: p.direction === "EINGANG" ? "S" : "H",
-    account: "1200", // Bank
-    contraAccount: "8000", // Erlöse (Platzhalter-Kontenrahmen)
-    date: p.date.toISOString().slice(0, 10),
-    text: p.reference ?? (p.charge ? p.charge.type : "Zahlung"),
-    invoiceField: p.reference ?? undefined,
-  }));
+  const rows: DatevRow[] = payments.map((p) => {
+    const chargeType = paymentChargeType(p.allocations);
+    return {
+      amount: Number(p.amount),
+      debitCredit: p.direction === "EINGANG" ? "S" : "H",
+      account: "1200", // Bank
+      contraAccount: "8000", // Erlöse (Platzhalter-Kontenrahmen)
+      date: p.date.toISOString().slice(0, 10),
+      text: p.reference ?? (chargeType === "MIXED" ? "Mehrere Sollstellungen" : chargeType ?? "Zahlung"),
+      invoiceField: p.reference ?? undefined,
+    };
+  });
 
   const now = new Date();
   const year = rows.length ? Number(rows[0].date.slice(0, 4)) : now.getUTCFullYear();

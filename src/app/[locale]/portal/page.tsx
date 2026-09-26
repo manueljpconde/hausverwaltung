@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CrudDialog } from "@/components/crud-dialog";
 import { TextField, TextAreaField } from "@/components/form-fields";
 import { reportIssue } from "@/server/actions/portal";
+import { chargeBalance } from "@/lib/charges";
+import { chargesForLeases } from "@/lib/portal-charges";
 
 export default async function PortalPage() {
   const user = await requireUser();
@@ -28,7 +30,6 @@ export default async function PortalPage() {
           include: {
             unit: { include: { building: { include: { property: true } } } },
             components: true,
-            charges: { include: { payments: { select: { id: true, amount: true, date: true } } }, orderBy: { dueDate: "desc" } },
           },
         },
       },
@@ -63,23 +64,17 @@ export default async function PortalPage() {
     orderBy: { createdAt: "desc" },
   });
 
-  const now = new Date();
-  const openItems = renters.flatMap((r) =>
-    r.lease.charges
-      .map((c) => {
-        const paid = c.payments.reduce((a, p) => a + Number(p.amount), 0);
-        return { c, open: Number(c.amount) - paid };
-      })
-      .filter((x) => x.open > 0.001),
-  );
+  const leaseCharges = await chargesForLeases(user.tenantId, renters.map((r) => r.leaseId));
+
+  const openItems = leaseCharges
+    .map((c) => ({ c, open: chargeBalance(c).open }))
+    .filter((x) => x.open > 0.001);
 
   // Zahlungsverlauf: NUR tatsächlich erfasste Zahlungen (nicht offene Posten,
   // die stehen bereits unter „Offene Posten") — #37.
-  const paymentHistory = renters
-    .flatMap((r) =>
-      r.lease.charges.flatMap((c) =>
-        c.payments.map((p) => ({ id: p.id, date: p.date, amount: Number(p.amount), type: c.type })),
-      ),
+  const paymentHistory = leaseCharges
+    .flatMap((c) =>
+      c.allocations.map((a) => ({ id: a.payment.id, date: a.payment.date, amount: Number(a.amount), type: c.type })),
     )
     .sort((a, b) => b.date.getTime() - a.date.getTime());
 

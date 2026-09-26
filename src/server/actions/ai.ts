@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/rbac";
 import { isAiConfigured, askAssistant } from "@/lib/ai";
 import { computeStatement } from "@/server/statements";
 import { money } from "@/lib/format";
+import { ALLOCATIONS_FOR_BALANCE, chargeBalance } from "@/lib/charges";
 
 export type AssistantState = { answer?: string; configured?: boolean; error?: string };
 
@@ -19,7 +20,7 @@ async function buildContext(tenantId: string) {
       where: { tenantId, startDate: { lte: now }, OR: [{ endDate: null }, { endDate: { gte: now } }] },
       include: { components: { select: { amount: true } } },
     }),
-    prisma.charge.findMany({ where: { tenantId }, include: { payments: { select: { amount: true } } } }),
+    prisma.charge.findMany({ where: { tenantId }, include: { allocations: ALLOCATIONS_FOR_BALANCE } }),
     prisma.ticket.count({ where: { tenantId, status: { not: "ERLEDIGT" } } }),
     prisma.maintenanceContract.count({ where: { tenantId, nextDue: { lt: now } } }),
   ]);
@@ -34,7 +35,7 @@ async function buildContext(tenantId: string) {
   let totalOpen = 0;
   let overdue = 0;
   for (const c of charges) {
-    const open = Number(c.amount) - c.payments.reduce((a, p) => a + Number(p.amount), 0);
+    const { open } = chargeBalance(c);
     if (open > 0.001) {
       totalOpen += open;
       if (c.dueDate < now) overdue++;

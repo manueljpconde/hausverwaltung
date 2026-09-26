@@ -696,6 +696,7 @@
     "manualCharge": "Sollstellung (manuell)",
     "recordPayment": "Zahlung erfassen",
     "partiallyApplied": "{applied} € zugeordnet, {unapplied} € bleiben unzugeordnet",
+    "mixedCharges": "Mehrere Sollstellungen",
     "mandates": "SEPA-Mandate",
     "newMandate": "Neues Mandat",
     "noMandates": "Keine Mandate.",

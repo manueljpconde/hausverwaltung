@@ -31,6 +31,7 @@ import { DunningDialog } from "@/components/dunning-dialog";
 import { PaymentEditDialog } from "@/components/payment-dialog-edit";
 import { summarizeTransactions } from "@/lib/transactions";
 import { deleteCharge, deleteAccount, deleteMandate, deletePayment, seedDefaultAccounts } from "@/server/actions/finances";
+import { ALLOCATIONS_FOR_BALANCE, chargeBalance, chargeLease, paymentChargeType } from "@/lib/charges";
 
 export default async function FinancesPage({
   searchParams,
@@ -48,13 +49,18 @@ export default async function FinancesPage({
   const df = await getDateLocale(locale);
   const tenantId = user.tenantId;
 
+  const leaseInclude = {
+    unit: { include: { building: { include: { property: true } } } },
+    renters: { include: { person: true } },
+  };
   const [charges, accounts, mandates, leases, persons, bankConnector, bankLinks, payments, allDocuments] = await Promise.all([
     prisma.charge.findMany({
       where: { tenantId },
       include: {
-        payments: { select: { amount: true } },
+        allocations: ALLOCATIONS_FOR_BALANCE,
         dunnings: { select: { level: true } },
-        lease: { include: { unit: { include: { building: { include: { property: true } } } }, renters: { include: { person: true } } } },
+        lease: { include: leaseInclude },
+        areaAllocation: { select: { lease: { include: leaseInclude } } },
       },
       orderBy: [{ dueDate: "desc" }],
     }),
@@ -69,7 +75,7 @@ export default async function FinancesPage({
       where: { tenantId },
       include: {
         account: { select: { name: true } },
-        charge: { select: { type: true } },
+        allocations: { select: { charge: { select: { type: true } } } },
         documents: { select: { id: true, name: true } },
       },
       orderBy: { date: "desc" },
@@ -94,14 +100,13 @@ export default async function FinancesPage({
 
   const now = new Date();
   const rows = charges.map((c) => {
-    const paid = c.payments.reduce((a, p) => a + Number(p.amount), 0);
-    const open = Number(c.amount) - paid;
+    const { paid, open } = chargeBalance(c);
     let status: "OPEN" | "PARTIAL" | "PAID" | "OVERDUE";
     if (open <= 0.001) status = "PAID";
     else if (c.dueDate < now) status = "OVERDUE";
     else status = paid > 0 ? "PARTIAL" : "OPEN";
     const dunLevel = c.dunnings.reduce((m, d) => Math.max(m, d.level), 0);
-    return { c, paid, open, status, dunLevel };
+    return { c, lease: chargeLease(c), paid, open, status, dunLevel };
   });
   const totalOpen = rows.reduce((a, r) => a + Math.max(0, r.open), 0);
   const STATUSES = ["OPEN", "PARTIAL", "PAID", "OVERDUE"];
@@ -111,7 +116,7 @@ export default async function FinancesPage({
     (r) =>
       (!statusFilter || r.status === statusFilter) &&
       (!typeFilter || r.c.type === typeFilter) &&
-      (!leaseFilter || r.c.leaseId === leaseFilter) &&
+      (!leaseFilter || r.lease?.id === leaseFilter) &&
       (!yearFilter || r.c.period.getUTCFullYear() === Number(yearFilter)),
   );
 
@@ -238,22 +243,22 @@ export default async function FinancesPage({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {visibleRows.map(({ c, open, status, dunLevel }) => (
+                {visibleRows.map(({ c, lease, open, status, dunLevel }) => (
                   <TableRow key={c.id}>
                     <TableCell>{date(c.period, df)}</TableCell>
                     <TableCell>{t(`chargeType.${c.type}`)}</TableCell>
                     <TableCell className="text-muted-foreground">
-                      {c.lease ? (
+                      {lease ? (
                         <div className="flex flex-col">
                           <Link
-                            href={`/units/${c.lease.unit.id}`}
+                            href={`/units/${lease.unit.id}`}
                             className="font-medium text-foreground hover:underline"
                           >
-                            {c.lease.unit.building.property.name} · {c.lease.unit.label}
+                            {lease.unit.building.property.name} · {lease.unit.label}
                           </Link>
-                          {c.lease.renters.length > 0 && (
-                            <Link href={`/leases/${c.leaseId}`} className="text-xs hover:underline">
-                              {c.lease.renters.map((r) => `${r.person.firstName} ${r.person.lastName}`).join(", ")}
+                          {lease.renters.length > 0 && (
+                            <Link href={`/leases/${lease.id}`} className="text-xs hover:underline">
+                              {lease.renters.map((r) => `${r.person.firstName} ${r.person.lastName}`).join(", ")}
                             </Link>
                           )}
                         </div>
@@ -277,11 +282,11 @@ export default async function FinancesPage({
                           <DunningDialog
                             chargeId={c.id}
                             renterName={
-                              c.lease?.renters[0]
-                                ? `${c.lease.renters[0].person.firstName} ${c.lease.renters[0].person.lastName}`
+                              lease?.renters[0]
+                                ? `${lease.renters[0].person.firstName} ${lease.renters[0].person.lastName}`
                                 : ""
                             }
-                            hasEmail={!!c.lease?.renters[0]?.person.email}
+                            hasEmail={!!lease?.renters[0]?.person.email}
                           />
                         )}
                         {dunLevel > 0 && (
@@ -330,7 +335,9 @@ export default async function FinancesPage({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {payments.map((p) => (
+                {payments.map((p) => {
+                  const chargeType = paymentChargeType(p.allocations);
+                  return (
                   <TableRow key={p.id}>
                     <TableCell>{date(p.date, df)}</TableCell>
                     <TableCell className="text-muted-foreground">{p.account?.name ?? t("common.none")}</TableCell>
@@ -338,7 +345,7 @@ export default async function FinancesPage({
                       className="max-w-[28rem] whitespace-normal break-words text-muted-foreground"
                       title={p.reference || undefined}
                     >
-                      {p.reference || (p.charge ? t(`chargeType.${p.charge.type}`) : "")}
+                      {p.reference || (chargeType ? (chargeType === "MIXED" ? t("finances.mixedCharges") : t(`chargeType.${chargeType}`)) : "")}
                       {p.note ? <span className="mt-0.5 block text-xs italic">{p.note}</span> : null}
                     </TableCell>
                     <TableCell className={`text-right font-medium ${p.direction === "EINGANG" ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
@@ -374,7 +381,8 @@ export default async function FinancesPage({
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           )}

@@ -8,6 +8,7 @@ import { parseCamt053 } from "@/lib/adapters/bankImport";
 import { isEInvoice, parseEInvoice } from "@/lib/adapters/erechnung";
 import { matchOpenCharge, openChargesForMatching, recordPayment } from "@/lib/payments";
 import { generateMonthlyCharges } from "@/lib/charge-generation";
+import { ALLOCATIONS_FOR_BALANCE, chargeBalance } from "@/lib/charges";
 
 // Dedizierte Operationen (kein reines CRUD) für REST-API + MCP.
 // Fachlogik gespiegelt aus den Server Actions, aber Bearer-Auth statt Session.
@@ -59,14 +60,17 @@ export const OPERATIONS: Record<string, Op> = {
       const charges = await prisma.charge.findMany({
         where: {
           tenantId: p.tenantId,
+          status: "ISSUED",
           dueDate: { lt: now },
-          ...(propertyId ? { lease: { unit: { building: { propertyId } } } } : {}),
+          ...(propertyId
+            ? { OR: [{ lease: { unit: { building: { propertyId } } } }, { areaAllocation: { propertyId } }] }
+            : {}),
         },
-        include: { payments: { select: { amount: true } }, dunnings: { select: { level: true } } },
+        include: { allocations: ALLOCATIONS_FOR_BALANCE, dunnings: { select: { level: true } } },
       });
       let dunned = 0;
       for (const c of charges) {
-        const open = Number(c.amount) - c.payments.reduce((x, pay) => x + Number(pay.amount), 0);
+        const { open } = chargeBalance(c);
         if (open <= 0.005) continue;
         const level = c.dunnings.length + 1;
         if (level > 3) continue;

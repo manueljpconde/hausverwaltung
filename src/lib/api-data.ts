@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { ALLOCATIONS_FOR_BALANCE, chargeBalance, chargeLease } from "@/lib/charges";
 
 // Geteilte, mandanten-gescopte Datenschicht für REST-API und MCP-Server.
 // Alle Funktionen erhalten die tenantId aus dem authentifizierten Token.
@@ -118,19 +119,21 @@ export async function listTickets(tenantId: string) {
 }
 
 export async function listOpenItems(tenantId: string) {
+  const leaseInclude = { unit: { include: { building: { include: { property: { select: { name: true } } } } } } };
   const charges = await prisma.charge.findMany({
     where: { tenantId },
     include: {
-      payments: { select: { amount: true } },
-      lease: { include: { unit: { include: { building: { include: { property: { select: { name: true } } } } } } } },
+      allocations: ALLOCATIONS_FOR_BALANCE,
+      lease: { include: leaseInclude },
+      areaAllocation: { select: { lease: { include: leaseInclude } } },
     },
     orderBy: { dueDate: "desc" },
   });
   const now = new Date();
   return charges
     .map((c) => {
-      const paid = c.payments.reduce((a, p) => a + Number(p.amount), 0);
-      const open = Number(c.amount) - paid;
+      const { open } = chargeBalance(c);
+      const lease = chargeLease(c);
       return {
         id: c.id,
         type: c.type,
@@ -139,7 +142,7 @@ export async function listOpenItems(tenantId: string) {
         amount: Number(c.amount),
         open: Math.round(open * 100) / 100,
         overdue: open > 0.005 && c.dueDate < now,
-        property: c.lease?.unit.building.property.name ?? null,
+        property: lease?.unit.building.property.name ?? null,
       };
     })
     .filter((c) => c.open > 0.005);
@@ -223,36 +226,46 @@ export async function listMeters(tenantId: string) {
 }
 
 export async function listAccounts(tenantId: string) {
-  const rows = await prisma.account.findMany({
-    where: { tenantId },
-    include: { payments: { select: { amount: true, direction: true } } },
-    orderBy: { createdAt: "asc" },
-  });
-  return rows.map((a) => {
-    const balance = a.payments.reduce(
-      (s, p) => s + (p.direction === "EINGANG" ? Number(p.amount) : -Number(p.amount)),
-      0,
-    );
-    return { id: a.id, name: a.name, type: a.type, iban: a.iban, balance: Math.round(balance * 100) / 100 };
-  });
+  // Kontostand: eigene Abfrage statt Account.payments-Relation (kein Charge-Bezug, unabhängig von #52).
+  const [rows, movements] = await Promise.all([
+    prisma.account.findMany({ where: { tenantId }, orderBy: { createdAt: "asc" } }),
+    prisma.payment.findMany({ where: { tenantId, accountId: { not: null } }, select: { accountId: true, amount: true, direction: true } }),
+  ]);
+  const balances = new Map<string, number>();
+  for (const m of movements) {
+    const delta = m.direction === "EINGANG" ? Number(m.amount) : -Number(m.amount);
+    balances.set(m.accountId!, (balances.get(m.accountId!) ?? 0) + delta);
+  }
+  return rows.map((a) => ({
+    id: a.id,
+    name: a.name,
+    type: a.type,
+    iban: a.iban,
+    balance: Math.round((balances.get(a.id) ?? 0) * 100) / 100,
+  }));
 }
 
 export async function listCharges(tenantId: string) {
+  const unitInclude = { unit: { select: { label: true } } };
   const rows = await prisma.charge.findMany({
     where: { tenantId },
-    include: { payments: { select: { amount: true } }, lease: { include: { unit: { select: { label: true } } } } },
+    include: {
+      allocations: ALLOCATIONS_FOR_BALANCE,
+      lease: { include: unitInclude },
+      areaAllocation: { select: { lease: { include: unitInclude } } },
+    },
     orderBy: { dueDate: "desc" },
   });
   return rows.map((c) => {
-    const paid = c.payments.reduce((s, p) => s + Number(p.amount), 0);
+    const { paid } = chargeBalance(c);
     return {
       id: c.id,
       type: c.type,
       period: day(c.period),
       dueDate: day(c.dueDate),
       amount: num(c.amount),
-      paid: Math.round(paid * 100) / 100,
-      unit: c.lease?.unit.label ?? null,
+      paid,
+      unit: chargeLease(c)?.unit.label ?? null,
     };
   });
 }
@@ -450,7 +463,7 @@ export async function portfolioSummary(tenantId: string) {
       where: { tenantId, startDate: { lte: now }, OR: [{ endDate: null }, { endDate: { gte: now } }] },
       include: { components: { select: { amount: true } } },
     }),
-    prisma.charge.findMany({ where: { tenantId }, include: { payments: { select: { amount: true } } } }),
+    prisma.charge.findMany({ where: { tenantId }, include: { allocations: ALLOCATIONS_FOR_BALANCE } }),
     prisma.ticket.count({ where: { tenantId, status: { not: "ERLEDIGT" } } }),
   ]);
   const occupied = units.filter((u) =>
@@ -460,10 +473,7 @@ export async function portfolioSummary(tenantId: string) {
     (a, l) => a + Number(l.rentCold) + l.components.reduce((s, c) => s + Number(c.amount), 0),
     0,
   );
-  const totalOpen = charges.reduce((a, c) => {
-    const open = Number(c.amount) - c.payments.reduce((s, p) => s + Number(p.amount), 0);
-    return a + Math.max(0, open);
-  }, 0);
+  const totalOpen = charges.reduce((a, c) => a + Math.max(0, chargeBalance(c).open), 0);
   return {
     properties: propertyCount,
     units: units.length,

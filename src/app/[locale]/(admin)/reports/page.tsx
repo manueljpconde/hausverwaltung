@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import { money } from "@/lib/format";
 import { managementTypeMessageKey } from "@/lib/market";
+import { ALLOCATIONS_FOR_BALANCE, chargeBalance } from "@/lib/charges";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -35,7 +36,7 @@ export default async function ReportsPage() {
         leases: { select: { startDate: true, endDate: true } },
       },
     }),
-    prisma.charge.findMany({ where: { tenantId }, include: { payments: { select: { amount: true } } } }),
+    prisma.charge.findMany({ where: { tenantId }, include: { allocations: ALLOCATIONS_FOR_BALANCE } }),
     prisma.tenant.findUnique({ where: { id: tenantId }, select: { market: true } }),
   ]);
   const mgmtNs = managementTypeMessageKey(tenant?.market ?? "DE");
@@ -44,10 +45,7 @@ export default async function ReportsPage() {
     u.leases.some((l) => l.startDate <= now && (!l.endDate || l.endDate >= now)),
   );
   const vacant = units.filter((u) => !occupied.includes(u));
-  const totalOpen = charges.reduce((a, c) => {
-    const open = Number(c.amount) - c.payments.reduce((s, p) => s + Number(p.amount), 0);
-    return a + Math.max(0, open);
-  }, 0);
+  const totalOpen = charges.reduce((a, c) => a + Math.max(0, chargeBalance(c).open), 0);
 
   const kpis = [
     { key: "properties", value: String(properties.length), icon: Building2 },
