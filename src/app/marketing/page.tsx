@@ -7,6 +7,9 @@ import { listBackgroundVideos } from "@/lib/videos";
 import { BackgroundVideo } from "@/components/background-video";
 import { LANDING_CTA_URL, LANDING_FEATURES, LANDING_TRUST, LANDING_SCREENSHOT, landingIcon, posterFor } from "@/lib/landing";
 
+// Pro Anfrage rendern: Canonical/OG-URL werden absolut aus AUTH_URL (Laufzeit, je Deployment).
+export const dynamic = "force-dynamic";
+
 const texts = () => getTranslations({ locale: "pt", namespace: "landing" });
 
 export async function generateMetadata(): Promise<Metadata> {

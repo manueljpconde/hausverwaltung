@@ -47,4 +47,10 @@ describe("/marketing (#33)", () => {
   it("alte DE/EN-Seite bleibt unter /marketing/index.html", () => {
     expect(existsSync(new URL("public/marketing/index.html", root))).toBe(true);
   });
+
+  it("wird pro Anfrage gerendert, damit Canonical/OG-URL absolut aus AUTH_URL kommen", () => {
+    const page = read("src/app/marketing/page.tsx");
+    expect(page).toContain('export const dynamic = "force-dynamic"');
+    expect(page).toContain("metadataBase: process.env.AUTH_URL");
+  });
 });
