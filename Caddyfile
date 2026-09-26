@@ -2,4 +2,21 @@
 {$DOMAIN} {
 	reverse_proxy app:3000
 	encode zstd gzip
+
+	# Zugriffslog nur für die Landing Page /marketing (#33): ohne IP, Header, Cookies, Query; täglich rotiert, 90 Tage.
+	log {
+		output file /data/access-marketing.log {
+			roll_interval 24h
+			roll_keep_for 2160h
+		}
+		format filter {
+			request>uri regexp "\?.*$" ""
+			request>remote_ip delete
+			request>client_ip delete
+			request>headers delete
+			resp_headers delete
+		}
+	}
+	@not_marketing not path /marketing
+	log_skip @not_marketing
 }

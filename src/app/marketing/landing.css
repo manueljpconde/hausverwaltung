@@ -1,0 +1,68 @@
+/* PT-Landingpage (#33) — CrmWare-Markenwerte. */
+.landing {
+  --cw-black: #000000;
+  --cw-teal: #53959c;
+  --cw-teal-dark: #4a8389;
+  --cw-green: #becd2f;
+  --cw-beige: #e9decf;
+  font-family: Arial, Helvetica, sans-serif;
+  color: var(--cw-black);
+  background: #ffffff;
+}
+html:has(.landing) {
+  scroll-padding-top: 5rem; /* sticky header */
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) {
+  html:has(.landing) { scroll-behavior: auto; }
+}
+.landing [id] { scroll-margin-top: 5rem; }
+.landing .cw-btn {
+  display: inline-block;
+  background: var(--cw-teal);
+  color: var(--cw-black);
+  padding: 12px 24px;
+  border-radius: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-decoration: none;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+.landing .cw-btn:hover { background: var(--cw-teal-dark); transform: translateY(-2px); }
+/* Heller Button auf dem Teal-Band (Schluss-CTA). */
+.landing .cw-btn.cw-btn-light { background: #ffffff; }
+.landing .cw-btn.cw-btn-light:hover { background: var(--cw-beige); }
+.landing .cw-btn-outline {
+  display: inline-block;
+  border: 2px solid #ffffff;
+  color: #ffffff;
+  padding: 10px 22px;
+  border-radius: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-decoration: none;
+}
+.landing .cw-card {
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 24px;
+}
+.landing a:focus-visible,
+.landing button:focus-visible {
+  outline: 3px solid var(--cw-green);
+  outline-offset: 2px;
+}
+.landing .cw-skip {
+  position: absolute;
+  left: 16px;
+  top: -48px;
+  background: var(--cw-teal);
+  color: var(--cw-black);
+  padding: 8px 12px;
+  border-radius: 4px;
+  z-index: 100;
+}
+.landing .cw-skip:focus { top: 8px; }
