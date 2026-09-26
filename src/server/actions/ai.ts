@@ -1,5 +1,6 @@
 "use server";
 
+import { getLocale, getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/rbac";
 import { isAiConfigured, askAssistant } from "@/lib/ai";
@@ -56,8 +57,10 @@ async function buildContext(tenantId: string) {
 
 export async function askAssistantAction(_prev: AssistantState, fd: FormData): Promise<AssistantState> {
   const user = await requireUser();
+  const locale = await getLocale();
+  const t = await getTranslations("assistant");
   const question = String(fd.get("question") ?? "").trim();
-  if (!question) return { error: "Bitte eine Frage eingeben." };
+  if (!question) return { error: t("emptyQuestion") };
 
   const ctx = await buildContext(user.tenantId);
   const tenant = await prisma.tenant.findUnique({
@@ -69,29 +72,38 @@ export async function askAssistantAction(_prev: AssistantState, fd: FormData): P
 
   if (!configured) {
     // Regelbasierter Fallback ohne LLM: fasst die Kennzahlen zusammen.
-    const answer =
-      `KI-Assistent nicht konfiguriert (ANTHROPIC_API_KEY fehlt). Kennzahlen zum Bestand:\n` +
-      `• ${ctx.objekte} Objekte, ${ctx.einheiten} Einheiten (${ctx.vermietet} vermietet, ${ctx.leerstand} leer)\n` +
-      `• Sollmiete/Monat: ${ctx.sollmieteMonatlich} €\n` +
-      `• Offene Posten: ${ctx.offenePostenSumme} € (${ctx.ueberfaelligeForderungen} überfällig)\n` +
-      `• ${ctx.offeneTickets} offene Tickets, ${ctx.faelligeWartungen} fällige Wartungen`;
+    const answer = t("fallbackSummary", {
+      properties: String(ctx.objekte),
+      units: String(ctx.einheiten),
+      occupied: String(ctx.vermietet),
+      vacant: String(ctx.leerstand),
+      rent: String(ctx.sollmieteMonatlich),
+      open: String(ctx.offenePostenSumme),
+      overdue: String(ctx.ueberfaelligeForderungen),
+      tickets: String(ctx.offeneTickets),
+      maintenance: String(ctx.faelligeWartungen),
+    });
     return { answer, configured: false };
   }
 
   try {
-    const answer = await askAssistant(JSON.stringify(ctx), question, aiCfg);
+    const answer = await askAssistant(JSON.stringify(ctx), question, locale, aiCfg);
     return { answer, configured: true };
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "KI-Anfrage fehlgeschlagen", configured: true };
+    // Anbieterfehler nur serverseitig protokollieren; der Nutzer bekommt die übersetzte Meldung.
+    console.error("[ai] request failed:", e instanceof Error ? e.message : e);
+    return { error: t("failed"), configured: true };
   }
 }
 
 /** Erklärt die Betriebskostenabrechnung eines Objekts/Jahres in Klartext. */
 export async function explainStatement(_p: AssistantState, fd: FormData): Promise<AssistantState> {
   const user = await requireUser();
+  const locale = await getLocale();
+  const t = await getTranslations("assistant");
   const propertyId = String(fd.get("propertyId") ?? "");
   const year = Number(fd.get("year")) || new Date().getFullYear();
-  if (!propertyId) return { error: "Kein Objekt" };
+  if (!propertyId) return { error: t("noProperty") };
 
   const st = await computeStatement(user.tenantId, propertyId, year);
   const tenant = await prisma.tenant.findUnique({ where: { id: user.tenantId }, select: { aiProvider: true, aiBaseUrl: true, aiApiKey: true, aiModel: true } });
@@ -106,21 +118,30 @@ export async function explainStatement(_p: AssistantState, fd: FormData): Promis
   };
 
   if (!isAiConfigured(aiCfg)) {
-    const answer =
-      `KI-Assistent nicht konfiguriert (ANTHROPIC_API_KEY fehlt). Kurzfassung der Abrechnung ${year}:\n` +
-      `• Objekt: ${ctx.objekt}\n` +
-      `• Umlagefähige Kosten gesamt: ${money(st.totalUmlage)}\n` +
-      st.units.map((u) => `• ${u.label}: umgelegt ${money(u.allocated)}, VZ ${money(u.prepayment)}, Saldo ${money(u.balance)} ${u.balance >= 0 ? "(Guthaben)" : "(Nachzahlung)"}`).join("\n");
+    const answer = [
+      t("fallbackStatement", { year: String(year), property: ctx.objekt ?? "", total: money(st.totalUmlage) }),
+      ...st.units.map((u) =>
+        t("fallbackStatementUnit", {
+          unit: u.label,
+          allocated: money(u.allocated),
+          prepayment: money(u.prepayment),
+          balance: money(u.balance),
+          state: t(u.balance >= 0 ? "balanceCredit" : "balanceDue"),
+        }),
+      ),
+    ].join("\n");
     return { answer, configured: false };
   }
   try {
     const answer = await askAssistant(
       JSON.stringify(ctx),
       "Erkläre diese Betriebskostenabrechnung einem Mieter in einfachen, freundlichen Worten: was wurde nach welchem Schlüssel umgelegt, und wie kommt der Saldo je Einheit zustande. Kurz und verständlich.",
+      locale,
       aiCfg,
     );
     return { answer, configured: true };
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "KI-Anfrage fehlgeschlagen", configured: true };
+    console.error("[ai] request failed:", e instanceof Error ? e.message : e);
+    return { error: t("failed"), configured: true };
   }
 }

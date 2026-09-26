@@ -979,7 +979,15 @@
     "placeholder": "Frage zum Bestand stellen…",
     "ask": "Fragen",
     "thinking": "Denkt nach…",
-    "notConfigured": "Ohne ANTHROPIC_API_KEY zeigt der Assistent nur eine Kennzahlen-Zusammenfassung. Setzen Sie den Schlüssel für echte KI-Antworten."
+    "notConfigured": "Ohne ANTHROPIC_API_KEY zeigt der Assistent nur eine Kennzahlen-Zusammenfassung. Setzen Sie den Schlüssel für echte KI-Antworten.",
+    "emptyQuestion": "Bitte eine Frage eingeben.",
+    "failed": "KI-Anfrage fehlgeschlagen",
+    "noProperty": "Kein Objekt",
+    "fallbackSummary": "KI-Assistent nicht konfiguriert (ANTHROPIC_API_KEY fehlt). Kennzahlen zum Bestand:\n• {properties} Objekte, {units} Einheiten ({occupied} vermietet, {vacant} leer)\n• Sollmiete/Monat: {rent} €\n• Offene Posten: {open} € ({overdue} überfällig)\n• {tickets} offene Tickets, {maintenance} fällige Wartungen",
+    "fallbackStatement": "KI-Assistent nicht konfiguriert (ANTHROPIC_API_KEY fehlt). Kurzfassung der Abrechnung {year}:\n• Objekt: {property}\n• Umlagefähige Kosten gesamt: {total}",
+    "fallbackStatementUnit": "• {unit}: umgelegt {allocated}, VZ {prepayment}, Saldo {balance} ({state})",
+    "balanceCredit": "Guthaben",
+    "balanceDue": "Nachzahlung"
   },
   "calendar": {
     "title": "Kalender",
