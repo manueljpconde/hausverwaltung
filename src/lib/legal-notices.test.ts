@@ -48,10 +48,10 @@ describe("AGPL-3.0: Quellcode-Angebot und rechtliche Hinweise (#14)", () => {
     }
   });
 
-  it("Login-Seite bietet Quellcode und Lizenz schon vor der Anmeldung an", () => {
+  it("Login-Seite zeigt keine AGPL-Links (Angebot bleibt über /legal und Info-Drawer)", () => {
     const src = read("src/app/[locale]/login/page.tsx");
     for (const needle of ["SOURCE_URL", "LICENSE_URL", 't("legal.source")', 't("legal.license")', 'href="/legal"', 't("legal.notice")']) {
-      expect(src).toContain(needle);
+      expect(src).not.toContain(needle);
     }
   });
 });
