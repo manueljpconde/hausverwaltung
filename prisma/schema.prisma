@@ -107,10 +107,18 @@ enum MeterType {
   WAERME
 }
 
+// Jurisdição / Markt Overlay (DE = Miet+WEG/BetrKV; PT = arrendamento+condomínio/IMI …).
+enum TenantMarket {
+  DE
+  PT
+}
+
 // Mandant = Verwaltungsfirma. Jede Domänen-Zeile trägt tenantId.
 model Tenant {
   id         String     @id @default(cuid())
   name       String
+  /// Legal/ops vocabulary + fiscal helpers (Phase 1–2 PT). UI locale is independent.
+  market     TenantMarket @default(DE)
   createdAt  DateTime   @default(now())
   users      User[]
   properties Property[]
@@ -1025,7 +1033,8 @@ model Insurance {
   @@index([propertyId])
 }
 
-// Grundsteuer (Reform 2025): Werte je Objekt, Jahresbetrag = Messbetrag * Hebesatz/100.
+// Property tax register (DE Grundsteuer / later PT IMI via Tenant.market — Phase 2).
+// Jahresbetrag DE = Messbetrag * Hebesatz/100.
 model PropertyTax {
   id             String   @id @default(cuid())
   tenantId       String

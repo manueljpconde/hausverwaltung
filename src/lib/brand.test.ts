@@ -20,10 +20,10 @@ describe("Produktname aus einer Quelle (#18)", () => {
   });
 
   it("Texte nutzen {app} statt eines festen Namens", () => {
-    for (const locale of ["de", "en"]) {
+    for (const locale of ["de", "en", "pt"]) {
       const m = JSON.parse(read(`messages/${locale}.json`));
       expect(m.app.name).toBeUndefined();
-      for (const text of [m.about.title, m.about.betaNote, m.setup.welcomeTitle]) {
+      for (const text of [m.about.title, m.about.betaNote, m.setup.welcomeTitle, m.fiscalWorkaround.saft]) {
         expect(text).toContain("{app}");
       }
       // Einzige erlaubte Nennung: das Originalwerk im AGPL-Hinweis — fest, ohne {app},

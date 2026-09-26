@@ -77,7 +77,8 @@
     "groupFinance": "Finanzen & Abrechnung",
     "groupOperations": "Betrieb",
     "groupMore": "Weitere",
-    "groupAdmin": "Administration"
+    "groupAdmin": "Administration",
+    "condominio": "Wohnungseigentum"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -144,7 +145,12 @@
     "tabIntegration": "KI & API",
     "tenantName": "Mandantenname",
     "save": "Speichern",
-    "saved": "Gespeichert"
+    "saved": "Gespeichert",
+    "market": "Markt / Rechtskreis",
+    "marketLabel": "Markt",
+    "marketDE": "Deutschland (DE)",
+    "marketPT": "Portugal (PT)",
+    "marketHint": "Steuert Fachvokabular und Module (Miet/WEG vs. Arrendamento/Condomínio). Die UI-Sprache ist unabhängig."
   },
   "account": {
     "changePassword": "Passwort ändern",
@@ -962,7 +968,9 @@
     "assetsTotal": "Rücklagen gesamt",
     "annual": "Jahresabrechnung",
     "actualTotal": "Ist-Kosten gesamt",
-    "noActual": "Keine Ist-Kosten (Kostenpositionen) für dieses Jahr."
+    "noActual": "Keine Ist-Kosten (Kostenpositionen) für dieses Jahr.",
+    "createWegCta": "Objekt anlegen oder bearbeiten",
+    "noWegHint": "Verwaltungsart „{type}“ am Objekt setzen, dann hierher zurück."
   },
   "assistant": {
     "title": "KI-Assistent",
@@ -1068,5 +1076,16 @@
     "prompt": "Suchbegriff eingeben, um Objekte, Einheiten, Personen und Verträge zu durchsuchen.",
     "resultsFor": "{count, plural, one {# Treffer} other {# Treffer}} für „{q}\"",
     "noResults": "Keine Treffer."
+  },
+  "managementTypePt": {
+    "MIET": "Mietverwaltung",
+    "WEG": "WEG / Wohnungseigentum"
+  },
+  "fiscalWorkaround": {
+    "title": "Portugal — steuerliche Workarounds",
+    "saft": "SAF-T: CSV-Export / API für die Buchhaltungssoftware (noch keine SAF-T-Datei aus {app}).",
+    "einvoice": "E-Rechnung: zertifizierte Rechnungen extern ausstellen; PDF/XML unter Dokumente ablegen. Sollstellungen und Zahlungen bleiben hier.",
+    "imi": "IMI: Grundsteuer-Maske als manuelles Register (Wert, Satz, Notiz); Caderneta/Bescheid als Dokument speichern.",
+    "footnote": "Vollständige SAF-T- / AT-E-Faturação- / IMI-Engines sind nicht Teil dieses Releases."
   }
 }

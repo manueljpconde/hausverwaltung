@@ -5,7 +5,9 @@
   "license": "AGPL-3.0-only",
   "scripts": {
     "dev": "next dev",
+    "prebuild": "tsx scripts/build-marketing.ts",
     "build": "next build",
+    "build:marketing": "tsx scripts/build-marketing.ts",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",

@@ -25,6 +25,16 @@ export async function updateTenantName(_p: ActionState, fd: FormData): Promise<A
   return { ok: true };
 }
 
+export async function updateTenantMarket(_p: ActionState, fd: FormData): Promise<ActionState> {
+  const user = await requireRole(["ADMIN"]);
+  const raw = str(fd.get("market"));
+  if (raw !== "DE" && raw !== "PT") return { error: "Invalid market" };
+  await prisma.tenant.update({ where: { id: user.tenantId }, data: { market: raw } });
+  await audit(user, "UPDATE", "Tenant", user.tenantId, `Market: ${raw}`);
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
 // --- Abrechnungs-Standards ---
 
 export async function updateStatementDefaults(_p: ActionState, fd: FormData): Promise<ActionState> {

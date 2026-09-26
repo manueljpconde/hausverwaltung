@@ -7,6 +7,7 @@ import { money, date } from "@/lib/format";
 import { getDateLocale } from "@/lib/date-locale";
 import { computeMgmtFee, type FeeType } from "@/lib/fee";
 import { buildAreaStatement, areaTimeWeights, VACANCY_ID } from "@/lib/allocation/area-time";
+import { managementTypeMessageKey } from "@/lib/market";
 import { AreaAllocationDialog } from "@/components/area-dialogs";
 import { deleteAreaAllocation } from "@/server/actions/area";
 import { Link } from "@/i18n/navigation";
@@ -71,7 +72,7 @@ export default async function PropertyDetailPage({
     },
     include: { components: { select: { amount: true } } },
   });
-  const [customDefs, unitDefs] = await Promise.all([
+  const [customDefs, unitDefs, tenant] = await Promise.all([
     prisma.customFieldDef.findMany({
       where: { tenantId: user.tenantId, entity: "PROPERTY" },
       orderBy: { createdAt: "asc" },
@@ -82,7 +83,9 @@ export default async function PropertyDetailPage({
       orderBy: { createdAt: "asc" },
       select: { key: true, label: true },
     }),
+    prisma.tenant.findUnique({ where: { id: user.tenantId }, select: { market: true } }),
   ]);
+  const mgmtNs = managementTypeMessageKey(tenant?.market ?? "DE");
   const customValues = (property.custom as Record<string, string>) ?? {};
 
   const unitCount = property.buildings.reduce((a, b) => a + b.units.length, 0);
@@ -168,13 +171,14 @@ export default async function PropertyDetailPage({
           <div className="flex gap-2 pt-1">
             <Badge variant="outline">{t(`propertyType.${property.type}`)}</Badge>
             <Badge variant={property.management === "WEG" ? "secondary" : "outline"}>
-              {t(`managementType.${property.management}`)}
+              {t(`${mgmtNs}.${property.management}`)}
             </Badge>
           </div>
         </div>
         <div className="flex gap-1">
           <PropertyDialog
             customDefs={customDefs}
+            managementTypeNs={mgmtNs}
             property={{
               id: property.id,
               name: property.name,
