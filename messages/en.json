@@ -78,7 +78,8 @@
     "groupFinance": "Finance & Statements",
     "groupOperations": "Operations",
     "groupMore": "More",
-    "groupAdmin": "Administration"
+    "groupAdmin": "Administration",
+    "condominio": "Condominium"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -145,7 +146,12 @@
     "tabIntegration": "AI & API",
     "tenantName": "Tenant name",
     "save": "Save",
-    "saved": "Saved"
+    "saved": "Saved",
+    "market": "Market / jurisdiction",
+    "marketLabel": "Market",
+    "marketDE": "Germany (DE)",
+    "marketPT": "Portugal (PT)",
+    "marketHint": "Controls legal vocabulary and modules (rental/condo vs Miet/WEG). UI language is independent."
   },
   "account": {
     "changePassword": "Change password",
@@ -963,7 +969,9 @@
     "assetsTotal": "Total reserves",
     "annual": "Annual statement",
     "actualTotal": "Total actual cost",
-    "noActual": "No actual costs (cost items) for this year."
+    "noActual": "No actual costs (cost items) for this year.",
+    "createWegCta": "Create or edit a property",
+    "noWegHint": "Set Management type to {type} on the property, then return here."
   },
   "assistant": {
     "title": "AI assistant",
@@ -1069,5 +1077,16 @@
     "prompt": "Enter a search term to search properties, units, people and leases.",
     "resultsFor": "{count, plural, one {# result} other {# results}} for “{q}”",
     "noResults": "No results."
+  },
+  "managementTypePt": {
+    "MIET": "Rental",
+    "WEG": "Condominium"
+  },
+  "fiscalWorkaround": {
+    "title": "Portugal — fiscal workarounds",
+    "saft": "SAF-T: export CSV / use the API for your accountant’s software (no SAF-T file from HaVeWa yet).",
+    "einvoice": "E-invoicing: issue certified invoices externally; attach PDF/XML under Documents. Charges and payments stay here.",
+    "imi": "IMI: use Property tax as a manual register (value, rate, notes) and store the caderneta/notice as a document.",
+    "footnote": "Full SAF-T / AT e-faturação / IMI engines are out of scope for this release."
   }
 }

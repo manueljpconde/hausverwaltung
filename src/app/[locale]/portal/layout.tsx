@@ -7,6 +7,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
 import { NotificationBell } from "@/components/notification-bell";
 import { InfoDrawer } from "@/components/info-drawer";
+import { toBcp47 } from "@/lib/format";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
@@ -16,7 +17,7 @@ export default async function PortalLayout({ children }: { children: React.React
     prisma.notification.count({ where: { userId: user.id, read: false } }),
     prisma.tenant.findUnique({ where: { id: user.tenantId }, select: { name: true } }),
   ]);
-  const dtf = new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" });
+  const dtf = new Intl.DateTimeFormat(toBcp47(locale), { dateStyle: "short", timeStyle: "short" });
   const notifItems = notifs.map((n) => ({
     id: n.id,
     title: n.title,

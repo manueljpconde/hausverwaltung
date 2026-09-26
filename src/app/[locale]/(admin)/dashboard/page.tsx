@@ -17,8 +17,9 @@ import {
 import { Link } from "@/i18n/navigation";
 import { requireUser } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
-import { money, date } from "@/lib/format";
+import { money, date, toBcp47 } from "@/lib/format";
 import { getDateLocale } from "@/lib/date-locale";
+import { managementTypeMessageKey } from "@/lib/market";
 import {
   Card,
   CardContent,
@@ -55,7 +56,7 @@ export default async function DashboardPage() {
   const in90 = new Date(now.getTime() + 90 * 864e5);
   const in30 = new Date(now.getTime() + 30 * 864e5);
 
-  const [properties, units, leases, charges, openTickets, maintenance, tasks, paymentsRecent, expiringLeases, upcomingMaint] = await Promise.all([
+  const [properties, units, leases, charges, openTickets, maintenance, tasks, paymentsRecent, expiringLeases, upcomingMaint, tenant] = await Promise.all([
     prisma.property.findMany({
       where: { tenantId },
       include: { buildings: { include: { _count: { select: { units: true } } } } },
@@ -76,7 +77,9 @@ export default async function DashboardPage() {
     prisma.payment.findMany({ where: { tenantId, direction: "EINGANG", date: { gte: sixMonthsAgo } }, select: { date: true, amount: true } }),
     prisma.lease.findMany({ where: { tenantId, endDate: { gte: now, lte: in90 } }, select: { id: true } }),
     prisma.maintenanceContract.count({ where: { tenantId, nextDue: { gte: now, lte: in30 } } }),
+    prisma.tenant.findUnique({ where: { id: tenantId }, select: { market: true } }),
   ]);
+  const mgmtNs = managementTypeMessageKey(tenant?.market ?? "DE");
 
   const isOccupied = (ls: { startDate: Date; endDate: Date | null }[]) =>
     ls.some((l) => l.startDate <= now && (!l.endDate || l.endDate >= now));
@@ -133,7 +136,7 @@ export default async function DashboardPage() {
     const zahlung = paymentsRecent
       .filter((p) => { const x = new Date(p.date); return x.getUTCFullYear() === y && x.getUTCMonth() === m; })
       .reduce((a, p) => a + Number(p.amount), 0);
-    const label = new Intl.DateTimeFormat(locale === "de" ? "de-DE" : "en-US", { month: "short" }).format(d);
+    const label = new Intl.DateTimeFormat(toBcp47(locale), { month: "short" }).format(d);
     return { label, soll, zahlung };
   });
 
@@ -300,7 +303,7 @@ export default async function DashboardPage() {
                     <TableCell>{t(`propertyType.${p.type}`)}</TableCell>
                     <TableCell>
                       <Badge variant={p.management === "WEG" ? "secondary" : "outline"}>
-                        {t(`managementType.${p.management}`)}
+                        {t(`${mgmtNs}.${p.management}`)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">

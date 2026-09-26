@@ -19,6 +19,8 @@ import { CustomFieldDialog } from "@/components/custom-field-dialog";
 import { ApiTokensManager } from "@/components/api-tokens-manager";
 import { IntegrationInfo } from "@/components/integration-info";
 import { TenantNameForm } from "@/components/tenant-name-form";
+import { TenantMarketForm } from "@/components/tenant-market-form";
+import { PtFiscalWorkaroundNotice } from "@/components/pt-fiscal-workaround-notice";
 import { DateFormatConfig } from "@/components/date-format-config";
 import { StatementDefaults } from "@/components/statement-defaults";
 import { SettingsTabs, type SettingsTab } from "@/components/settings-tabs";
@@ -66,6 +68,8 @@ export default async function SettingsPage() {
   const generalContent = (
     <>
       <TenantNameForm name={tenant?.name ?? ""} editable={isAdmin} />
+      <TenantMarketForm market={tenant?.market ?? "DE"} editable={isAdmin} />
+      <PtFiscalWorkaroundNotice market={tenant?.market ?? "DE"} />
       {isAdmin && <DateFormatConfig dateFormat={tenant?.dateFormat ?? null} />}
       {isAdmin && tenant && <BrandingConfig brandColor={tenant.brandColor} hasLogo={!!tenant.logoKey} />}
     </>

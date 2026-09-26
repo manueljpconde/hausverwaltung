@@ -14,17 +14,22 @@ import {
 import { PropertyTaxDialog } from "@/components/niche-dialogs";
 import { Button } from "@/components/ui/button";
 import { bookGrundsteuerAsCost } from "@/server/actions/niche";
+import { PtFiscalWorkaroundNotice } from "@/components/pt-fiscal-workaround-notice";
 
 export default async function GrundsteuerPage() {
   const user = await requireUser();
   const t = await getTranslations();
   const locale = await getLocale();
 
-  const properties = await prisma.property.findMany({
-    where: { tenantId: user.tenantId },
-    include: { propertyTax: true },
-    orderBy: { name: "asc" },
-  });
+  const [properties, tenant] = await Promise.all([
+    prisma.property.findMany({
+      where: { tenantId: user.tenantId },
+      include: { propertyTax: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.tenant.findUnique({ where: { id: user.tenantId }, select: { market: true } }),
+  ]);
+  const market = tenant?.market ?? "DE";
 
   const jahr = (mess?: number | null, hebe?: number | null) =>
     mess && hebe ? Math.round(((mess * hebe) / 100) * 100) / 100 : 0;
@@ -35,6 +40,8 @@ export default async function GrundsteuerPage() {
         <h1 className="text-2xl font-semibold tracking-tight">{t("grundsteuer.title")}</h1>
         <p className="text-sm text-muted-foreground">{t("grundsteuer.subtitle")}</p>
       </div>
+
+      <PtFiscalWorkaroundNotice market={market} />
 
       <Card>
         <CardContent className="p-0">

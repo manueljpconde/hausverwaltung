@@ -17,9 +17,18 @@ import {
 } from "@/components/ui/sidebar";
 import { APP_VERSION_LABEL, APP_VERSION_FULL } from "@/lib/version";
 
-export function AppSidebar({ logoUrl, superAdmin = false }: { logoUrl?: string; superAdmin?: boolean }) {
+export function AppSidebar({
+  logoUrl,
+  superAdmin = false,
+  market = "DE",
+}: {
+  logoUrl?: string;
+  superAdmin?: boolean;
+  market?: "DE" | "PT";
+}) {
   const t = useTranslations();
   const pathname = usePathname();
+  const labelKey = (key: string) => (key === "nav.weg" && market === "PT" ? "nav.condominio" : key);
 
   return (
     <Sidebar>
@@ -42,15 +51,16 @@ export function AppSidebar({ logoUrl, superAdmin = false }: { logoUrl?: string; 
                 {group.items.filter((item) => !item.superAdmin || superAdmin).map((item) => {
                   const active =
                     item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+                  const key = labelKey(item.key);
                   return (
                     <SidebarMenuItem key={item.href}>
                       <SidebarMenuButton
                         render={<Link href={item.href} />}
                         isActive={active}
-                        tooltip={t(item.key)}
+                        tooltip={t(key)}
                       >
                         <item.icon />
-                        <span>{t(item.key)}</span>
+                        <span>{t(key)}</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );
