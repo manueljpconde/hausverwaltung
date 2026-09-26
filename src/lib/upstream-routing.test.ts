@@ -27,4 +27,11 @@ describe("keine Weiterleitung von Nutzern zu Upstream (#7)", () => {
       expect(html).not.toContain(target);
     }
   });
+
+  it("Marketing-Seite verlinkt nur auf crmware.pt (#13)", () => {
+    const html = read("public/marketing/index.html");
+    const hosts = [...html.matchAll(/https?:\/\/([^/"'\s)<>]+)/g)].map((m) => m[1]);
+    expect(hosts.filter((h) => h !== "crmware.pt" && !h.endsWith(".crmware.pt"))).toEqual([]);
+    expect(html).toContain('href="https://crmware.pt"');
+  });
 });
