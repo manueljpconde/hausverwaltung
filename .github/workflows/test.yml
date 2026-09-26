@@ -1,0 +1,39 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: havewa_test
+          POSTGRES_USER: havewa
+          POSTGRES_PASSWORD: havewa
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U havewa -d havewa_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://havewa:havewa@localhost:5432/havewa_test?schema=public
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - run: npm test
+      - run: npm run test:crmware-demo
+        env:
+          CRMWARE_DEMO_TEST_DATABASE_URL: postgresql://havewa:havewa@localhost:5432/havewa_test?schema=public

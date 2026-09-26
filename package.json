@@ -12,10 +12,13 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:crmware-demo": "vitest run src/lib/crmware-demo-seed.integration.test.ts",
     "db:up": "docker compose up -d",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:crmware": "tsx prisma/seed-crmware-demo.ts",
+    "db:validate:crmware": "tsx prisma/seed-crmware-demo.ts --validate",
     "db:reset": "prisma migrate reset --force && tsx prisma/seed.ts",
     "db:studio": "prisma studio"
   },
