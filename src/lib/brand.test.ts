@@ -123,3 +123,19 @@ describe("Marke ist ein Unternehmen, nicht das Produkt (#24)", () => {
     expect(pt.about.betaNote).toBe("Esta aplicação está em fase de testes beta. As funcionalidades podem mudar.");
   });
 });
+
+describe("Standardsprache je Marke", () => {
+  it("CrmWare startet auf Portugiesisch; Routing nimmt die Standardsprache aus brand.ts", async () => {
+    const { APP_DEFAULT_LOCALE } = await import("./brand");
+    const { routing } = await import("../i18n/routing");
+    expect(APP_DEFAULT_LOCALE).toBe("pt");
+    expect(routing.defaultLocale).toBe(APP_DEFAULT_LOCALE);
+    expect(routing.locales).toContain(APP_DEFAULT_LOCALE);
+  });
+
+  it("Logout führt auf die Login-Seite der aktuellen Sprache, nicht fest auf /de", () => {
+    const menu = read("src/components/user-menu.tsx");
+    expect(menu).not.toContain('"/de/login"');
+    expect(menu).toContain("callbackUrl: `/${locale}/login`");
+  });
+});

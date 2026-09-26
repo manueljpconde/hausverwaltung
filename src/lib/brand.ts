@@ -6,3 +6,6 @@ export const APP_SLUG = "crmware";
 /** Logo und Icon der Marke (public/brand/<APP_SLUG>/, sonst default/) — über feste URLs, auch clientseitig (#24). */
 export const BRAND_LOGO_URL = "/api/brand/logo";
 export const BRAND_ICON_URL = "/api/brand/icon";
+
+/** Standardsprache der Marke — gilt, wenn weder Cookie noch Browsersprache passen. */
+export const APP_DEFAULT_LOCALE = "pt" as const;
