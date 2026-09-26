@@ -3,6 +3,7 @@ import { getTranslations, getLocale } from "next-intl/server";
 import { requireUser } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import { money } from "@/lib/format";
+import { managementTypeMessageKey } from "@/lib/market";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -21,7 +22,7 @@ export default async function ReportsPage() {
   const tenantId = user.tenantId;
   const now = new Date();
 
-  const [properties, units, charges] = await Promise.all([
+  const [properties, units, charges, tenant] = await Promise.all([
     prisma.property.findMany({
       where: { tenantId },
       include: { buildings: { include: { _count: { select: { units: true } } } } },
@@ -35,7 +36,9 @@ export default async function ReportsPage() {
       },
     }),
     prisma.charge.findMany({ where: { tenantId }, include: { payments: { select: { amount: true } } } }),
+    prisma.tenant.findUnique({ where: { id: tenantId }, select: { market: true } }),
   ]);
+  const mgmtNs = managementTypeMessageKey(tenant?.market ?? "DE");
 
   const occupied = units.filter((u) =>
     u.leases.some((l) => l.startDate <= now && (!l.endDate || l.endDate >= now)),
@@ -147,7 +150,7 @@ export default async function ReportsPage() {
               {properties.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell className="font-medium">{p.name}</TableCell>
-                  <TableCell>{t(`managementType.${p.management}`)}</TableCell>
+                  <TableCell>{t(`${mgmtNs}.${p.management}`)}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {p.zip} {p.city}
                   </TableCell>

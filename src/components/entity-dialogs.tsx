@@ -56,9 +56,11 @@ type PropertyData = {
 export async function PropertyDialog({
   property,
   customDefs = [],
+  managementTypeNs = "managementType",
 }: {
   property?: PropertyData;
   customDefs?: { key: string; label: string }[];
+  managementTypeNs?: "managementType" | "managementTypePt";
 }) {
   const t = await getTranslations();
   const edit = !!property;
@@ -86,7 +88,7 @@ export async function PropertyDialog({
         name="management"
         label={t("fields.management")}
         defaultValue={property?.management ?? "MIET"}
-        options={await opts("managementType", ["MIET", "WEG"])}
+        options={await opts(managementTypeNs, ["MIET", "WEG"])}
       />
       <TextField
         name="meaTotal"
