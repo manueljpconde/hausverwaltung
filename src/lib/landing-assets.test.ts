@@ -30,6 +30,12 @@ describe("Landing-Assets (#33)", () => {
     }
   });
 
+  it("CrmWare-Hintergrundvideo ≤ 2 MB (ohne Schlussszene mit Tippfehler)", async () => {
+    const videos = await listBackgroundVideos({ slug: "crmware" });
+    expect(videos.length).toBeGreaterThan(0);
+    for (const v of videos) expect(statSync(pub(v)).size, v).toBeLessThanOrEqual(2 * 1024 * 1024);
+  });
+
   it("Dashboard-Screenshot existiert als WebP ≤ 200 KB", () => {
     const shot = pub("/brand/crmware/landing/dashboard.webp");
     expect(existsSync(shot)).toBe(true);
