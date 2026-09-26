@@ -1,6 +1,6 @@
 # Demo CrmWare Portugal
 
-Guia operacional da demonstração criada por `prisma/seed-crmware-demo.ts`. Todos os nomes, contactos, NIF, IBAN, documentos e movimentos são sintéticos. A data funcional está fixada em 26 de setembro de 2026 e o histórico cobre outubro de 2024 a setembro de 2026.
+Guia operacional da demonstração criada por `prisma/seed-crmware-demo.ts`. Todos os nomes, contactos, NIF, IBAN, documentos e movimentos são sintéticos. A data funcional acompanha o dia de execução e o histórico cobre os 24 meses até ao mês corrente.
 
 ## Matriz funcional
 
@@ -65,23 +65,23 @@ Todos os utilizadores usam a password fornecida localmente em `CRMWARE_DEMO_PASS
 
 ## Execução e validação
 
-O seed recusa `NODE_ENV=production`, bases remotas e execuções sem autorização explícita. Com PostgreSQL local migrado:
+O seed recusa `NODE_ENV=production`, bases remotas, bases locais sem o sufixo dedicado `_demo` ou `_test` e execuções sem autorização explícita. Com PostgreSQL local migrado:
 
 ```bash
 ALLOW_DEMO_SEED=1 \
 CRMWARE_DEMO_PASSWORD='<password-local-com-12-caracteres-ou-mais>' \
-DATABASE_URL='postgresql://havewa:havewa@localhost:5432/havewa?schema=public' \
+DATABASE_URL='postgresql://havewa:havewa@localhost:5432/havewa_crmware_demo?schema=public' \
 npm run db:seed:crmware
 
-DATABASE_URL='postgresql://havewa:havewa@localhost:5432/havewa?schema=public' \
+DATABASE_URL='postgresql://havewa:havewa@localhost:5432/havewa_crmware_demo?schema=public' \
 npm run db:validate:crmware
 
-DATABASE_URL='postgresql://havewa:havewa@localhost:5432/havewa?schema=public' \
-CRMWARE_DEMO_TEST_DATABASE_URL='postgresql://havewa:havewa@localhost:5432/havewa?schema=public' \
+DATABASE_URL='postgresql://havewa:havewa@localhost:5432/havewa_crmware_test?schema=public' \
+CRMWARE_DEMO_TEST_DATABASE_URL='postgresql://havewa:havewa@localhost:5432/havewa_crmware_test?schema=public' \
 npm run test:crmware-demo
 ```
 
-O seed é determinístico e substitui apenas tenants identificados simultaneamente pelo nome `CrmWare Demo PT - ...` e por todos os utilizadores pertencerem ao domínio reservado `.crmware-demo.example` do cenário. Uma colisão de nome sem esse marcador interrompe a execução sem remover o tenant. A validação falha se os volumes divergirem, o histórico financeiro não cobrir 24 meses, houver contratos sobrepostos, movimentos fora da vigência, relações incoerentes, NIF válidos, assembleias impossíveis ou documentos vazios/em falta. Os ficheiros são gravados em `storage/documents/` com o prefixo `crmware-demo-<cenário>-`.
+O seed gera dados coerentes com o respetivo dia e substitui apenas tenants identificados simultaneamente pelo nome `CrmWare Demo PT - ...`, pelo marcador reservado do seed e pelo domínio `.crmware-demo.example` dos utilizadores existentes. Uma colisão de nome sem esses marcadores interrompe a execução sem remover o tenant. Uma execução falhada limpa o tenant parcial antes de terminar. A validação falha se os volumes divergirem, o histórico financeiro não cobrir 24 meses, houver cobranças mensais duplicadas ou em falta, avisos sobre cobranças pagas, contratos sobrepostos, movimentos fora da vigência, relações incoerentes, NIF válidos, assembleias impossíveis ou documentos vazios/em falta. Os ficheiros são gravados em `storage/documents/` com o prefixo `crmware-demo-<cenário>-`. Volte a executar o seed antes de uma demo noutro mês para renovar as datas relativas.
 
 ## Guião de demonstração
 

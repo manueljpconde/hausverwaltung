@@ -5,21 +5,33 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { simplePdf } from "../src/lib/pdf";
 
-export const CRMWARE_DEMO_ANCHOR = new Date("2026-09-26T12:00:00.000Z");
+export function resolveDemoAnchor(now = new Date()): Date {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 12));
+}
+
+export function demoDateFrom(anchor: Date, monthOffset: number, day = 1): Date {
+  return new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth() + monthOffset, day, 12));
+}
+
+export const CRMWARE_DEMO_ANCHOR = resolveDemoAnchor();
 
 type DemoSeedEnv = Pick<NodeJS.ProcessEnv, "ALLOW_DEMO_SEED" | "CRMWARE_DEMO_PASSWORD" | "DATABASE_URL" | "NODE_ENV">;
 
 export function assertDemoSeedAllowed(env: Partial<DemoSeedEnv>): string {
   if (env.ALLOW_DEMO_SEED !== "1") throw new Error("Defina ALLOW_DEMO_SEED=1 para autorizar o seed de demonstração.");
   if (env.NODE_ENV === "production") throw new Error("O seed de demonstração é recusado em produção.");
-  let hostname = "";
+  let databaseUrl: URL;
   try {
-    hostname = new URL(env.DATABASE_URL ?? "").hostname;
+    databaseUrl = new URL(env.DATABASE_URL ?? "");
   } catch {
     throw new Error("DATABASE_URL inválido para o seed de demonstração.");
   }
-  if (!["localhost", "127.0.0.1", "::1"].includes(hostname)) {
+  if (!["localhost", "127.0.0.1", "[::1]"].includes(databaseUrl.hostname)) {
     throw new Error("O seed de demonstração só pode usar uma base de dados local.");
+  }
+  const databaseName = decodeURIComponent(databaseUrl.pathname).replace(/^\//, "");
+  if (!/(?:_demo|_test)$/.test(databaseName)) {
+    throw new Error("A base de dados local deve ter um nome dedicado terminado em _demo ou _test.");
   }
   const password = env.CRMWARE_DEMO_PASSWORD ?? "";
   if (password.length < 12) throw new Error("CRMWARE_DEMO_PASSWORD deve ter pelo menos 12 caracteres.");
@@ -142,7 +154,7 @@ export const CRMWARE_DEMO_SCENARIOS: readonly DemoScenario[] = [
 ] as const;
 
 export function demoDate(monthOffset: number, day = 1): Date {
-  return new Date(Date.UTC(2026, 8 + monthOffset, day, 12));
+  return demoDateFrom(CRMWARE_DEMO_ANCHOR, monthOffset, day);
 }
 
 export function validateScenarioDefinitions(scenarios: readonly DemoScenario[]): string[] {
@@ -280,22 +292,20 @@ function minimalXlsx(label: string, amount: number): Buffer {
 async function assertScenarioTenantOwnership(scenario: DemoScenario) {
   const tenants = await prisma.tenant.findMany({
     where: { name: scenario.tenantName },
-    select: { id: true, users: { select: { email: true } } },
+    select: { id: true, smtpFrom: true, users: { select: { email: true } } },
   });
   const suffix = `@${scenario.emailDomain}`;
+  const marker = `demo-seed@${scenario.emailDomain}`;
   for (const tenant of tenants) {
-    if (tenant.users.length === 0 || tenant.users.some((user) => !user.email.endsWith(suffix))) {
+    if (tenant.smtpFrom !== marker || tenant.users.some((user) => !user.email.endsWith(suffix))) {
       throw new Error(`Colisão de tenant não-demo: ${scenario.tenantName}. Nada foi removido.`);
     }
   }
   return tenants;
 }
 
-async function removeScenarioData(scenario: DemoScenario): Promise<void> {
-  const tenants = await assertScenarioTenantOwnership(scenario);
-  for (const tenant of tenants) {
-    const tenantId = tenant.id;
-    await prisma.$transaction([
+async function deleteTenantData(tenantId: string): Promise<void> {
+  await prisma.$transaction([
     prisma.emailMessage.deleteMany({ where: { tenantId } }),
     prisma.document.deleteMany({ where: { tenantId } }),
     prisma.dunningNotice.deleteMany({ where: { tenantId } }),
@@ -340,8 +350,14 @@ async function removeScenarioData(scenario: DemoScenario): Promise<void> {
     prisma.customFieldDef.deleteMany({ where: { tenantId } }),
     prisma.importPreset.deleteMany({ where: { tenantId } }),
     prisma.template.deleteMany({ where: { tenantId } }),
-      prisma.tenant.delete({ where: { id: tenantId } }),
-    ]);
+    prisma.tenant.delete({ where: { id: tenantId } }),
+  ]);
+}
+
+async function removeScenarioData(scenario: DemoScenario): Promise<void> {
+  const tenants = await assertScenarioTenantOwnership(scenario);
+  for (const tenant of tenants) {
+    await deleteTenantData(tenant.id);
   }
 }
 
@@ -497,8 +513,14 @@ async function createOwnerships(
   condoOwners: { id: string }[],
   landlords: { id: string }[],
 ) {
+  const condoOwnerships = [];
   for (let i = 0; i < condoUnits.length; i++) {
-    await prisma.owner.create({ data: { tenantId, unitId: condoUnits[i].id, personId: condoOwners[i % condoOwners.length].id, share: 1000 } });
+    condoOwnerships.push(await prisma.owner.create({ data: { tenantId, unitId: condoUnits[i].id, personId: condoOwners[i % condoOwners.length].id, share: 1000 } }));
+  }
+  for (let i = condoUnits.length; i < condoOwners.length; i++) {
+    const ownership = condoOwnerships[(i - condoUnits.length) % condoOwnerships.length];
+    await prisma.owner.update({ where: { id: ownership.id }, data: { share: 500 } });
+    await prisma.owner.create({ data: { tenantId, unitId: ownership.unitId, personId: condoOwners[i].id, share: 500 } });
   }
   for (let i = 0; i < rentalUnits.length; i++) {
     await prisma.owner.create({ data: { tenantId, unitId: rentalUnits[i].id, personId: landlords[i % landlords.length].id, share: 1000 } });
@@ -625,62 +647,71 @@ async function createFinance(tenantId: string, scenario: DemoScenario, leases: D
     condoAccounts.push(await prisma.account.create({ data: { tenantId, name: `Conta - ${condoProperties[i].name}`, type: "BANK", iban: ptIban(100 + i + scenario.key.length) } }));
   }
   const payments: DemoPayment[] = [];
-  for (let i = 0; i < scenario.targets.financialMovements; i++) {
-    const monthOffset = -23 + (i % 24);
-    const period = demoDate(monthOffset, 1);
-    if (leases.length) {
-      const eligible = leases.filter((lease) =>
-        lease.state !== "future" && lease.startDate <= period && (!lease.endDate || lease.endDate >= period),
-      );
-      if (!eligible.length) throw new Error(`${scenario.key}: mês sem contrato elegível ${period.toISOString()}`);
-      const lease = eligible[i % eligible.length];
-      const charge = await prisma.charge.create({
-        data: {
-          tenantId,
-          leaseId: lease.id,
-          type: "MIETE",
-          period,
-          dueDate: demoDate(monthOffset, 8),
-          amount: lease.rentTotal,
-          description: `Renda ${period.toISOString().slice(0, 7)}`,
-          createdAt: period,
-        },
-      });
-      const payment = await prisma.payment.create({
-        data: {
-          tenantId,
-          accountId: account.id,
-          chargeId: charge.id,
-          date: demoDate(monthOffset, 5 + (i % 3)),
-          amount: lease.rentTotal,
-          direction: "EINGANG",
-          reference: `PT-DEMO-${scenario.key.toUpperCase()}-${String(i + 1).padStart(5, "0")}`,
-          externalId: `crmware-demo-${scenario.key}-${i + 1}`,
-          createdAt: period,
-        },
-      });
-      payments.push({ id: payment.id, propertyId: lease.propertyId, unitId: lease.unitId, personId: lease.renterPersonId });
-    } else {
-      const property = condoProperties[i % condoProperties.length];
-      const payment = await prisma.payment.create({
-        data: {
-          tenantId,
-          accountId: condoAccounts[i % condoAccounts.length].id,
-          date: demoDate(monthOffset, 5 + (i % 3)),
-          amount: 75 + (i % 11) * 12.5,
-          direction: i % 5 === 4 ? "AUSGANG" : "EINGANG",
-          reference: `Movimento bancário ${property.name} - ${String(i + 1).padStart(5, "0")}`,
-          externalId: `crmware-demo-${scenario.key}-${i + 1}`,
-          createdAt: period,
-        },
-      });
-      payments.push({ id: payment.id, propertyId: property.id });
-    }
-  }
   const delinquentLeases = leases.filter((lease) => lease.state === "delinquent");
+  const unpaidPeriod = demoDate(-2, 1);
+  const paidLeaseMonths = leases.flatMap((lease) => Array.from({ length: 24 }, (_, index) => {
+    const monthOffset = -23 + index;
+    const period = demoDate(monthOffset, 1);
+    const eligible = lease.state !== "future" && lease.startDate <= period && (!lease.endDate || lease.endDate >= period);
+    const reservedForDunning = lease.state === "delinquent" && period.getTime() === unpaidPeriod.getTime();
+    return eligible && !reservedForDunning ? [{ lease, monthOffset, period }] : [];
+  })).flat();
+
+  if (paidLeaseMonths.length > scenario.targets.financialMovements) {
+    throw new Error(`${scenario.key}: o alvo de movimentos não comporta uma cobrança única por contrato e mês`);
+  }
+
+  for (let i = 0; i < paidLeaseMonths.length; i++) {
+    const { lease, monthOffset, period } = paidLeaseMonths[i];
+    const charge = await prisma.charge.create({
+      data: {
+        tenantId,
+        leaseId: lease.id,
+        type: "MIETE",
+        period,
+        dueDate: demoDate(monthOffset, 8),
+        amount: lease.rentTotal,
+        description: `Renda ${period.toISOString().slice(0, 7)}`,
+        createdAt: period,
+      },
+    });
+    const payment = await prisma.payment.create({
+      data: {
+        tenantId,
+        accountId: account.id,
+        chargeId: charge.id,
+        date: demoDate(monthOffset, 5 + (i % 3)),
+        amount: lease.rentTotal,
+        direction: "EINGANG",
+        reference: `PT-DEMO-${scenario.key.toUpperCase()}-${String(i + 1).padStart(5, "0")}`,
+        externalId: `crmware-demo-${scenario.key}-${i + 1}`,
+        createdAt: period,
+      },
+    });
+    payments.push({ id: payment.id, propertyId: lease.propertyId, unitId: lease.unitId, personId: lease.renterPersonId });
+  }
+
+  for (let i = payments.length; i < scenario.targets.financialMovements; i++) {
+    const monthOffset = -23 + (i % 24);
+    const property = condoProperties.length ? condoProperties[i % condoProperties.length] : null;
+    const payment = await prisma.payment.create({
+      data: {
+        tenantId,
+        accountId: property ? condoAccounts[i % condoAccounts.length].id : account.id,
+        date: demoDate(monthOffset, 5 + (i % 3)),
+        amount: 75 + (i % 11) * 12.5,
+        direction: i % 5 === 4 ? "AUSGANG" : "EINGANG",
+        reference: `${property ? `Movimento bancário ${property.name}` : "Movimento bancário operacional"} - ${String(i + 1).padStart(5, "0")}`,
+        externalId: `crmware-demo-${scenario.key}-${i + 1}`,
+        createdAt: demoDate(monthOffset, 1),
+      },
+    });
+    payments.push({ id: payment.id, propertyId: property?.id ?? leases[i % leases.length].propertyId });
+  }
+
   for (let i = 0; i < delinquentLeases.length; i++) {
     const lease = delinquentLeases[i];
-    const charge = await prisma.charge.create({ data: { tenantId, leaseId: lease.id, type: "MIETE", period: demoDate(-2, 1), dueDate: demoDate(-2, 8), amount: lease.rentTotal, description: "Renda vencida para demonstração" } });
+    const charge = await prisma.charge.create({ data: { tenantId, leaseId: lease.id, type: "MIETE", period: unpaidPeriod, dueDate: demoDate(-2, 8), amount: lease.rentTotal, description: "Renda vencida para demonstração" } });
     await prisma.dunningNotice.create({ data: { tenantId, chargeId: charge.id, level: i % 2 ? 2 : 1, date: demoDate(-1, 15), fee: 0, note: "Aviso de pagamento" } });
   }
   return payments;
@@ -693,12 +724,16 @@ async function createOperations(tenantId: string, scenario: DemoScenario, proper
     contractors.push(await prisma.contractor.create({ data: { tenantId, name: `${trades[i % trades.length]} Lusitana ${i + 1}, Lda.`, trade: trades[i % trades.length], email: demoEmail("prestador", i, scenario.emailDomain), phone: `+351 21${String(1000000 + i).slice(-7)}` } }));
   }
   const reporters = portalUsers.filter((user) => user.role === "MIETER");
+  const reporterUnits = reporters.flatMap((reporter) => reporter.personId
+    ? units.filter((unit) => unitPeople.get(unit.id)?.includes(reporter.personId!)).map((unit) => ({ reporter, unit }))
+    : []);
   const ticketTitles = ["Infiltração na parede", "Luz comum avariada", "Ruído no elevador", "Torneira com fuga", "Portão não fecha", "Pedido de inspeção"];
   for (let i = 0; i < scenario.targets.tickets; i++) {
     const completed = i < Math.floor(scenario.targets.tickets * 0.75);
     const exceptional = i >= Math.ceil(scenario.targets.tickets * 0.92);
-    const unit = units[i % units.length];
-    const reporter = reporters.find((user) => user.personId && unitPeople.get(unit.id)?.includes(user.personId));
+    const reporterUnit = reporterUnits[i % Math.max(1, reporterUnits.length)];
+    const unit = i < reporterUnits.length ? reporterUnit.unit : units[i % units.length];
+    const reporter = i < reporterUnits.length ? reporterUnit.reporter : reporters.find((user) => user.personId && unitPeople.get(unit.id)?.includes(user.personId));
     await prisma.ticket.create({
       data: {
         tenantId,
@@ -726,16 +761,21 @@ async function createOperations(tenantId: string, scenario: DemoScenario, proper
 }
 
 async function createCondominium(tenantId: string, scenario: DemoScenario, properties: { id: string }[]) {
+  const unitCounts = new Map(await Promise.all(properties.map(async (property) => [
+    property.id,
+    await prisma.unit.count({ where: { tenantId, building: { propertyId: property.id } } }),
+  ] as const)));
+  const currentYear = CRMWARE_DEMO_ANCHOR.getUTCFullYear();
   for (let i = 0; i < properties.length; i++) {
-    await prisma.economicPlan.create({ data: { tenantId, propertyId: properties[i].id, year: 2026, totalAmount: 24000 + i * 3750, note: "Orçamento anual aprovado" } });
+    await prisma.economicPlan.create({ data: { tenantId, propertyId: properties[i].id, year: currentYear, totalAmount: 24000 + i * 3750, note: "Orçamento anual aprovado" } });
     const reserve = await prisma.reserve.create({ data: { tenantId, propertyId: properties[i].id, name: "Fundo comum de reserva" } });
     for (let month = -23; month <= 0; month += 3) {
       await prisma.reserveTransaction.create({ data: { tenantId, reserveId: reserve.id, date: demoDate(month, 25), amount: 900 + i * 60, note: "Dotação trimestral" } });
     }
     await prisma.costEntry.createMany({ data: [
-      { tenantId, propertyId: properties[i].id, year: 2025, type: "VERSICHERUNG", amount: 3200 + i * 200, method: "MEA", note: "Seguro multirriscos" },
-      { tenantId, propertyId: properties[i].id, year: 2025, type: "GEBAEUDEREINIGUNG", amount: 4800 + i * 250, method: "MEA", note: "Limpeza de partes comuns" },
-      { tenantId, propertyId: properties[i].id, year: 2025, type: "SONSTIGE", amount: 1500 + i * 100, method: "MEA", note: "Manutenção corrente" },
+      { tenantId, propertyId: properties[i].id, year: currentYear - 1, type: "VERSICHERUNG", amount: 3200 + i * 200, method: "MEA", note: "Seguro multirriscos" },
+      { tenantId, propertyId: properties[i].id, year: currentYear - 1, type: "GEBAEUDEREINIGUNG", amount: 4800 + i * 250, method: "MEA", note: "Limpeza de partes comuns" },
+      { tenantId, propertyId: properties[i].id, year: currentYear - 1, type: "SONSTIGE", amount: 1500 + i * 100, method: "MEA", note: "Manutenção corrente" },
     ] });
   }
   const meetings = [];
@@ -767,7 +807,11 @@ async function createCondominium(tenantId: string, scenario: DemoScenario, prope
     const meeting = completedMeetings[i % completedMeetings.length];
     const number = (nextNumber.get(meeting.propertyId) ?? 0) + 1;
     nextNumber.set(meeting.propertyId, number);
-    await prisma.resolution.create({ data: { tenantId, propertyId: meeting.propertyId, meetingId: meeting.id, number, title: ["Aprovação de contas", "Reparação da cobertura", "Atualização de quotas"][i % 3], text: "Deliberação sintética para demonstração funcional.", date: meeting.date, result: i % 10 === 8 ? "ABGELEHNT" : i % 10 === 9 ? "VERTAGT" : "ANGENOMMEN", votesYes: 14 + (i % 8), votesNo: i % 4, votesAbstain: i % 3 } });
+    const eligibleVotes = unitCounts.get(meeting.propertyId) ?? 0;
+    const votesNo = i % 3;
+    const votesAbstain = i % 2;
+    const votesYes = Math.max(0, eligibleVotes - votesNo - votesAbstain - (i % 4));
+    await prisma.resolution.create({ data: { tenantId, propertyId: meeting.propertyId, meetingId: meeting.id, number, title: ["Aprovação de contas", "Reparação da cobertura", "Atualização de quotas"][i % 3], text: "Deliberação sintética para demonstração funcional.", date: meeting.date, result: i % 10 === 8 ? "ABGELEHNT" : i % 10 === 9 ? "VERTAGT" : "ANGENOMMEN", votesYes, votesNo, votesAbstain } });
   }
 }
 
@@ -795,7 +839,8 @@ async function createDocuments(tenantId: string, scenario: DemoScenario, units: 
     const personId = linkedPayment?.personId && relatedPeople.includes(linkedPayment.personId)
       ? linkedPayment.personId
       : relatedPeople[i % Math.max(1, relatedPeople.length)] ?? null;
-    const document = await prisma.document.create({ data: { tenantId, propertyId: unit.propertyId, unitId: unit.id, personId, name: `${["Contrato", "Fatura", "Ata", "Mapa", "Comprovativo"][i % 5]} ${String(i + 1).padStart(4, "0")}.${format}`, category, mime, size: buffer.length, storageKey, invoiceNo: category === "RECHNUNG" ? `FT DEMO/${2025 + (i % 2)}/${String(i + 1).padStart(4, "0")}` : null, invoiceTotal: category === "RECHNUNG" ? amount : null, createdAt: demoDate(-23 + (i % 24), 12) } });
+    const documentYear = demoDate(-23 + (i % 24), 12).getUTCFullYear();
+    const document = await prisma.document.create({ data: { tenantId, propertyId: unit.propertyId, unitId: unit.id, personId, name: `${["Contrato", "Fatura", "Ata", "Mapa", "Comprovativo"][i % 5]} ${String(i + 1).padStart(4, "0")}.${format}`, category, mime, size: buffer.length, storageKey, invoiceNo: category === "RECHNUNG" ? `FT DEMO/${documentYear}/${String(i + 1).padStart(4, "0")}` : null, invoiceTotal: category === "RECHNUNG" ? amount : null, createdAt: demoDate(-23 + (i % 24), 12) } });
     documents.push(document);
     if (linkedPayment) {
       await prisma.payment.update({ where: { id: linkedPayment.id }, data: { documents: { connect: { id: document.id } } } });
@@ -822,21 +867,27 @@ async function createSupportingData(tenantId: string, scenario: DemoScenario, pr
 async function seedScenario(scenario: DemoScenario, passwordHash: string): Promise<void> {
   await removeScenarioData(scenario);
   await cleanStorage(scenario);
-  const tenant = await prisma.tenant.create({ data: { name: scenario.tenantName, market: "PT", isDemo: false, brandColor: "#53959c" } });
-  const internalUsers = await createUsers(tenant.id, scenario, passwordHash);
-  const { condoOwners, landlords } = await createPeople(tenant.id, scenario);
-  const { condoProperties, rentalProperties, condoUnits, rentalUnits } = await createProperties(tenant.id, scenario);
-  await createOwnerships(tenant.id, condoUnits, rentalUnits, condoOwners, landlords);
-  const { leases, activeRenterPeople } = await createLeases(tenant.id, scenario, rentalUnits);
-  const portalUsers = await createPortalUsers(tenant.id, scenario, passwordHash, { condoOwners, landlords, renterPeople: activeRenterPeople });
-  const payments = await createFinance(tenant.id, scenario, leases, condoProperties);
-  const allProperties = [...condoProperties, ...rentalProperties];
-  const allUnits = [...condoUnits, ...rentalUnits];
-  const unitPeople = await peopleByUnit(tenant.id);
-  await createOperations(tenant.id, scenario, allProperties, allUnits, internalUsers, portalUsers, unitPeople);
-  await createCondominium(tenant.id, scenario, condoProperties);
-  await createDocuments(tenant.id, scenario, allUnits, unitPeople, payments);
-  await createSupportingData(tenant.id, scenario, allProperties, internalUsers);
+  const tenant = await prisma.tenant.create({ data: { name: scenario.tenantName, market: "PT", isDemo: false, brandColor: "#53959c", smtpFrom: `demo-seed@${scenario.emailDomain}` } });
+  try {
+    const internalUsers = await createUsers(tenant.id, scenario, passwordHash);
+    const { condoOwners, landlords } = await createPeople(tenant.id, scenario);
+    const { condoProperties, rentalProperties, condoUnits, rentalUnits } = await createProperties(tenant.id, scenario);
+    await createOwnerships(tenant.id, condoUnits, rentalUnits, condoOwners, landlords);
+    const { leases, activeRenterPeople } = await createLeases(tenant.id, scenario, rentalUnits);
+    const portalUsers = await createPortalUsers(tenant.id, scenario, passwordHash, { condoOwners, landlords, renterPeople: activeRenterPeople });
+    const payments = await createFinance(tenant.id, scenario, leases, condoProperties);
+    const allProperties = [...condoProperties, ...rentalProperties];
+    const allUnits = [...condoUnits, ...rentalUnits];
+    const unitPeople = await peopleByUnit(tenant.id);
+    await createOperations(tenant.id, scenario, allProperties, allUnits, internalUsers, portalUsers, unitPeople);
+    await createCondominium(tenant.id, scenario, condoProperties);
+    await createDocuments(tenant.id, scenario, allUnits, unitPeople, payments);
+    await createSupportingData(tenant.id, scenario, allProperties, internalUsers);
+  } catch (error) {
+    await deleteTenantData(tenant.id);
+    await cleanStorage(scenario);
+    throw error;
+  }
 }
 
 type ValidationRow = { scenario: string; errors: string[]; counts: Record<string, number> };
@@ -847,10 +898,12 @@ export async function validateSeededScenarios(client: PrismaClient = prisma): Pr
     const suffix = `@${scenario.emailDomain}`;
     const candidates = await client.tenant.findMany({
       where: { name: scenario.tenantName },
-      select: { id: true, isDemo: true, dateFormat: true, users: { select: { email: true } } },
+      select: { id: true, isDemo: true, dateFormat: true, smtpFrom: true, users: { select: { email: true } } },
     });
     const managed = candidates.filter((candidate) =>
-      candidate.users.length > 0 && candidate.users.every((user) => user.email.endsWith(suffix)),
+      candidate.smtpFrom === `demo-seed@${scenario.emailDomain}`
+      && candidate.users.length > 0
+      && candidate.users.every((user) => user.email.endsWith(suffix)),
     );
     if (managed.length !== 1) {
       rows.push({ scenario: scenario.key, errors: [`esperado 1 tenant de demo identificado, obtidos ${managed.length}`], counts: {} });
@@ -858,7 +911,7 @@ export async function validateSeededScenarios(client: PrismaClient = prisma): Pr
     }
     const tenant = managed[0];
     const tenantId = tenant.id;
-    const [internalUsers, condoProperties, rentalProperties, units, payments, tickets, contractors, meetings, resolutions, documents, leases, landlordCount, condoOwnerCount, rentalUnitRows, relationRows, documentRows, ticketRows, portalUsers, meetingRows, chargeRows, personRows, propertyRows] = await Promise.all([
+    const [internalUsers, condoProperties, rentalProperties, units, payments, tickets, contractors, meetings, resolutions, documents, leases, landlordCount, condoOwnerCount, rentalUnitRows, relationRows, documentRows, ticketRows, portalUsers, meetingRows, chargeRows, personRows, propertyRows, condoOwnerRows, condoAccounts] = await Promise.all([
       client.user.count({ where: { tenantId, role: { in: INTERNAL_ROLES } } }),
       client.property.count({ where: { tenantId, management: "WEG" } }),
       client.property.count({ where: { tenantId, management: "MIET" } }),
@@ -877,10 +930,12 @@ export async function validateSeededScenarios(client: PrismaClient = prisma): Pr
       client.document.findMany({ where: { tenantId }, select: { storageKey: true, size: true, propertyId: true, unitId: true, personId: true, unit: { select: { building: { select: { propertyId: true } } } }, person: { select: { owners: { select: { unitId: true } }, renters: { select: { lease: { select: { unitId: true } } } } } } } }),
       client.ticket.findMany({ where: { tenantId }, select: { propertyId: true, unitId: true, unit: { select: { building: { select: { propertyId: true } }, leases: { select: { renters: { select: { personId: true } } } } } }, reporter: { select: { personId: true } } } }),
       client.user.findMany({ where: { tenantId, role: "MIETER" }, select: { email: true, person: { select: { renters: { select: { lease: { select: { startDate: true, endDate: true, charges: { select: { id: true } } } } } } } } } }),
-      client.meeting.findMany({ where: { tenantId }, select: { id: true, propertyId: true, date: true, status: true, protocol: true, resolutions: { select: { propertyId: true, number: true } } } }),
-      client.charge.findMany({ where: { tenantId }, select: { type: true, period: true, amount: true, lease: { select: { startDate: true, endDate: true, rentCold: true, components: { select: { amount: true } } } }, payments: { select: { amount: true } } } }),
+      client.meeting.findMany({ where: { tenantId }, select: { id: true, propertyId: true, date: true, status: true, protocol: true, property: { select: { buildings: { select: { units: { select: { id: true } } } } } }, resolutions: { select: { propertyId: true, number: true, votesYes: true, votesNo: true, votesAbstain: true } } } }),
+      client.charge.findMany({ where: { tenantId }, select: { id: true, leaseId: true, type: true, period: true, amount: true, lease: { select: { startDate: true, endDate: true, rentCold: true, components: { select: { amount: true } } } }, payments: { select: { amount: true } }, dunnings: { select: { id: true } } } }),
       client.person.findMany({ where: { tenantId }, select: { custom: true } }),
       client.property.findMany({ where: { tenantId }, select: { custom: true } }),
+      client.person.findMany({ where: { tenantId, note: { startsWith: "Condómino" } }, select: { id: true, owners: { select: { id: true } } } }),
+      client.account.findMany({ where: { tenantId, name: { startsWith: "Conta - " } }, select: { name: true, payments: { select: { id: true } } } }),
     ]);
     const active = leases.filter((lease) => lease.startDate <= CRMWARE_DEMO_ANCHOR && (!lease.endDate || lease.endDate >= CRMWARE_DEMO_ANCHOR)).length;
     const future = leases.filter((lease) => lease.startDate > CRMWARE_DEMO_ANCHOR).length;
@@ -923,6 +978,25 @@ export async function validateSeededScenarios(client: PrismaClient = prisma): Pr
       if (charge.payments.some((payment) => Math.abs(Number(payment.amount) - Number(charge.amount)) > 0.001)) {
         errors.push("pagamento divergente da cobrança");
       }
+      if (charge.dunnings.length && charge.payments.length) errors.push(`cobrança em aviso já paga: ${charge.id}`);
+    }
+    const chargeMonthCounts = new Map<string, number>();
+    for (const charge of chargeRows) {
+      if (!charge.leaseId) continue;
+      const key = `${charge.leaseId}:${charge.period.toISOString().slice(0, 7)}`;
+      chargeMonthCounts.set(key, (chargeMonthCounts.get(key) ?? 0) + 1);
+    }
+    for (const [key, count] of chargeMonthCounts) {
+      if (count !== 1) errors.push(`mês de contrato cobrado ${count} vezes: ${key}`);
+    }
+    for (const lease of leases) {
+      for (let offset = -23; offset <= 0; offset++) {
+        const period = demoDate(offset, 1);
+        if (lease.startDate <= period && (!lease.endDate || lease.endDate >= period)) {
+          const key = `${lease.id}:${period.toISOString().slice(0, 7)}`;
+          if ((chargeMonthCounts.get(key) ?? 0) !== 1) errors.push(`mês de contrato sem cobrança única: ${key}`);
+        }
+      }
     }
 
     for (const user of portalUsers) {
@@ -948,11 +1022,19 @@ export async function validateSeededScenarios(client: PrismaClient = prisma): Pr
         errors.push("autor da ocorrência não está ligado à fração");
       }
     }
+    if (scenario.targets.activeLeases && !ticketRows.some((ticket) => ticket.reporter)) errors.push("nenhuma ocorrência reportada por inquilino");
+
+    if (condoOwnerRows.some((person) => person.owners.length === 0)) errors.push("condómino sem fração");
+    if (condoAccounts.some((account) => account.payments.length === 0)) errors.push("condomínio sem movimentos financeiros");
 
     for (const meeting of meetingRows) {
       if (meeting.status === "DURCHGEFUEHRT" && (meeting.date > CRMWARE_DEMO_ANCHOR || !meeting.protocol)) errors.push("assembleia realizada com data/ata incoerente");
       if (meeting.status === "GEPLANT" && (meeting.date <= CRMWARE_DEMO_ANCHOR || meeting.protocol || meeting.resolutions.length)) errors.push("assembleia planeada com data/resultado incoerente");
       if (meeting.resolutions.some((resolution) => resolution.propertyId !== meeting.propertyId)) errors.push("deliberação ligada a outro imóvel");
+      const eligibleVotes = meeting.property.buildings.reduce((total, building) => total + building.units.length, 0);
+      if (meeting.resolutions.some((resolution) => resolution.votesYes + resolution.votesNo + resolution.votesAbstain > eligibleVotes)) {
+        errors.push("deliberação com mais votos do que frações");
+      }
     }
     const resolutionKeys = meetingRows.flatMap((meeting) => meeting.resolutions.map((resolution) => `${resolution.propertyId}:${resolution.number}`));
     if (new Set(resolutionKeys).size !== resolutionKeys.length) errors.push("números de deliberação duplicados no mesmo imóvel");

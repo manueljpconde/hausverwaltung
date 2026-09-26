@@ -5,14 +5,16 @@ import {
   CRMWARE_DEMO_SCENARIOS,
   assertDemoSeedAllowed,
   demoDate,
+  demoDateFrom,
   invalidPtNif,
   isValidPtNif,
+  resolveDemoAnchor,
   validateScenarioDefinitions,
 } from "../../prisma/seed-crmware-demo";
 
 describe("CrmWare Portugal demo seed (#46)", () => {
   it("defines the three deterministic scenarios at the agreed midpoint volumes", () => {
-    expect(CRMWARE_DEMO_ANCHOR.toISOString()).toBe("2026-09-26T12:00:00.000Z");
+    expect(CRMWARE_DEMO_ANCHOR.getUTCHours()).toBe(12);
     expect(CRMWARE_DEMO_SCENARIOS.map((scenario) => scenario.key)).toEqual([
       "mixed",
       "condominium",
@@ -91,13 +93,15 @@ describe("CrmWare Portugal demo seed (#46)", () => {
     const allowed = {
       ALLOW_DEMO_SEED: "1",
       CRMWARE_DEMO_PASSWORD: "LocalOnly-Password-2026",
-      DATABASE_URL: "postgresql://havewa:havewa@localhost:5432/havewa",
+      DATABASE_URL: "postgresql://havewa:havewa@localhost:5432/havewa_demo",
       NODE_ENV: "development",
     } as const;
     expect(assertDemoSeedAllowed(allowed)).toBe(allowed.CRMWARE_DEMO_PASSWORD);
     expect(() => assertDemoSeedAllowed({ ...allowed, ALLOW_DEMO_SEED: undefined })).toThrow(/ALLOW_DEMO_SEED/);
     expect(() => assertDemoSeedAllowed({ ...allowed, NODE_ENV: "production" })).toThrow(/produção/);
     expect(() => assertDemoSeedAllowed({ ...allowed, DATABASE_URL: "postgresql://db.internal/havewa" })).toThrow(/local/);
+    expect(() => assertDemoSeedAllowed({ ...allowed, DATABASE_URL: "postgresql://localhost/havewa" })).toThrow(/_demo|_test/);
+    expect(assertDemoSeedAllowed({ ...allowed, DATABASE_URL: "postgresql://[::1]/havewa_test" })).toBe(allowed.CRMWARE_DEMO_PASSWORD);
     expect(() => assertDemoSeedAllowed({ ...allowed, CRMWARE_DEMO_PASSWORD: "short" })).toThrow(/password/i);
   });
 
@@ -109,10 +113,13 @@ describe("CrmWare Portugal demo seed (#46)", () => {
     }
   });
 
-  it("covers exactly 24 calendar months without depending on wall-clock time", () => {
-    expect(demoDate(-23, 1).toISOString()).toBe("2024-10-01T12:00:00.000Z");
-    expect(demoDate(0, 26).toISOString()).toBe("2026-09-26T12:00:00.000Z");
-    expect(demoDate(1, 5).toISOString()).toBe("2026-10-05T12:00:00.000Z");
+  it("anchors the rolling 24 months to the execution date", () => {
+    const anchor = resolveDemoAnchor(new Date("2027-02-10T08:30:00Z"));
+    expect(anchor.toISOString()).toBe("2027-02-10T12:00:00.000Z");
+    expect(demoDateFrom(anchor, -23, 1).toISOString()).toBe("2025-03-01T12:00:00.000Z");
+    expect(demoDateFrom(anchor, 0, 10).toISOString()).toBe("2027-02-10T12:00:00.000Z");
+    expect(demoDateFrom(anchor, 1, 5).toISOString()).toBe("2027-03-05T12:00:00.000Z");
+    expect(demoDate(0, CRMWARE_DEMO_ANCHOR.getUTCDate()).getUTCMonth()).toBe(CRMWARE_DEMO_ANCHOR.getUTCMonth());
   });
 
   it("accepts the committed definitions", () => {
@@ -124,6 +131,7 @@ describe("CrmWare Portugal demo seed (#46)", () => {
     expect(pkg.scripts["db:seed:crmware"]).toBe("tsx prisma/seed-crmware-demo.ts");
     expect(pkg.scripts["db:validate:crmware"]).toBe("tsx prisma/seed-crmware-demo.ts --validate");
     expect(pkg.scripts["test:crmware-demo"]).toBe("vitest run src/lib/crmware-demo-seed.integration.test.ts");
+    expect(readFileSync(new URL("../../.github/workflows/test.yml", import.meta.url), "utf8")).toContain("npm run test:crmware-demo");
   });
 
   it("ships an evidence-based operator guide with explicit product limits", () => {

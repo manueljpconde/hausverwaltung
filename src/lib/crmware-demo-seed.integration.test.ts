@@ -31,11 +31,58 @@ describe.skipIf(!databaseUrl)("CrmWare demo seed database contract (#46)", () =>
   it("is idempotent, validates its invariants and refuses a non-demo name collision", async () => {
     const first = runSeed();
     expect(first.status, first.stderr || first.stdout).toBe(0);
+    const partialScenario = CRMWARE_DEMO_SCENARIOS[0];
+    await client!.tenant.create({
+      data: {
+        name: partialScenario.tenantName,
+        market: "PT",
+        smtpFrom: `demo-seed@${partialScenario.emailDomain}`,
+      },
+    });
     const second = runSeed();
     expect(second.status, second.stderr || second.stdout).toBe(0);
 
     const validation = await validateSeededScenarios(client!);
     expect(validation.map((row) => row.errors)).toEqual([[], [], []]);
+
+    const seededTenants = await client!.tenant.findMany({
+      where: { name: { in: CRMWARE_DEMO_SCENARIOS.map((item) => item.tenantName) } },
+      select: { id: true, name: true },
+    });
+    expect(seededTenants).toHaveLength(CRMWARE_DEMO_SCENARIOS.length);
+    const tenantIds = seededTenants.map((tenant) => tenant.id);
+    const charges = await client!.charge.findMany({
+      where: { tenantId: { in: tenantIds }, leaseId: { not: null } },
+      select: { leaseId: true, period: true },
+    });
+    const chargeMonths = charges.map((charge) => `${charge.leaseId}:${charge.period.toISOString().slice(0, 7)}`);
+    expect(new Set(chargeMonths).size).toBe(chargeMonths.length);
+    expect(await client!.charge.count({
+      where: { tenantId: { in: tenantIds }, dunnings: { some: {} }, payments: { some: {} } },
+    })).toBe(0);
+
+    const mixedTenantId = seededTenants.find((tenant) => tenant.name === CRMWARE_DEMO_SCENARIOS[0].tenantName)!.id;
+    expect(await client!.ticket.count({ where: { tenantId: mixedTenantId, reporterId: { not: null } } })).toBeGreaterThan(0);
+    expect(await client!.person.count({
+      where: { tenantId: { in: tenantIds }, note: { startsWith: "Condómino" }, owners: { none: {} } },
+    })).toBe(0);
+    expect(await client!.account.count({
+      where: { tenantId: { in: tenantIds }, name: { startsWith: "Conta - " }, payments: { none: {} } },
+    })).toBe(0);
+
+    const resolutions = await client!.resolution.findMany({
+      where: { tenantId: { in: tenantIds } },
+      select: {
+        votesYes: true,
+        votesNo: true,
+        votesAbstain: true,
+        property: { select: { buildings: { select: { units: { select: { id: true } } } } } },
+      },
+    });
+    expect(resolutions.every((resolution) => {
+      const unitCount = resolution.property.buildings.reduce((total, building) => total + building.units.length, 0);
+      return resolution.votesYes + resolution.votesNo + resolution.votesAbstain <= unitCount;
+    })).toBe(true);
 
     const tenantIdsBeforeCollision = await client!.tenant.findMany({
       where: { name: { in: CRMWARE_DEMO_SCENARIOS.map((item) => item.tenantName) } },
