@@ -3,9 +3,10 @@
 #         docker compose -f docker-compose.registry.yml up -d
 # Erwartet eine .env-Datei daneben (siehe .env.prod.example).
 # Alternative ohne Registry: docker-compose.prod.yml (baut lokal).
+# Image-Tag MUSS in .env gepinnt sein (HAVEWA_TAG=sha-…); Update: deploy/update.sh <tag>
 services:
   app:
-    image: ghcr.io/fgilde/hausverwaltung:latest
+    image: "${HAVEWA_IMAGE:-ghcr.io/manueljpconde/hausverwaltung}:${HAVEWA_TAG:?HAVEWA_TAG in .env setzen, z. B. sha-abc1234}"
     container_name: havewa-app
     restart: unless-stopped
     depends_on:

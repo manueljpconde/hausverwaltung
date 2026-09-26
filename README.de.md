@@ -163,13 +163,23 @@ erster Admin), wechseln und verwalten. Bestehende Installationen befördern beim
 nächsten Start automatisch ihren ältesten Admin. Alternativ eine Instanz pro Firma.
 
 **Vorgebautes Image (schneller):** jeder Push auf `main` baut per GitHub Actions ein
-Image nach `ghcr.io/fgilde/hausverwaltung:latest`. Deploy ohne Bauen auf dem Server
-via `docker-compose.registry.yml`:
+Image nach `ghcr.io/manueljpconde/hausverwaltung`, getaggt als `latest` und `sha-<kurz>`.
+Deploy ohne Bauen auf dem Server via `docker-compose.registry.yml`; dafür muss in `.env`
+ein gepinnter `HAVEWA_TAG` stehen (z. B. `sha-abc1234`; `HAVEWA_IMAGE` überschreibt das Image):
 
 ```bash
 docker compose -f docker-compose.registry.yml pull
 docker compose -f docker-compose.registry.yml up -d
 ```
+
+Betrieb auf dem Host (die Skripte erwarten Compose-Datei und `.env` in `HAVEWA_DIR`,
+Standard `/opt/havewa`):
+
+- `deploy/update.sh <tag>`: sichert, pinnt den Tag in `.env`, zieht, startet neu, räumt alte Images weg.
+  Migrationen laufen beim Start; ein älterer Tag macht sie nicht rückgängig, dafür gibt es den Restore.
+- `deploy/backup.sh`: `pg_dump` und `storage/`-Archiv nach `backups/`, 14 Tage lokal,
+  optional off-site via `BACKUP_RSYNC_TARGET` (z. B. Hetzner Storage Box). Nächtlich per Cron laufen lassen.
+- `deploy/restore.sh <stamp>`: ersetzt Datenbank und `storage/` durch dieses Backup.
 
 ## Heimserver-Installation (Unraid · Umbrel · Proxmox)
 

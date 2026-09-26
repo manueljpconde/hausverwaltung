@@ -148,13 +148,23 @@ Migrations run automatically on container start. Persistence via the volumes
 Then do the first-run setup at `https://<DOMAIN>/setup`.
 
 **Prebuilt image (faster):** every push to `main` builds and publishes an image to
-`ghcr.io/fgilde/hausverwaltung:latest` (GitHub Actions). Deploy without building on
-the server via `docker-compose.registry.yml`:
+`ghcr.io/manueljpconde/hausverwaltung`, tagged `latest` and `sha-<short>` (GitHub Actions).
+Deploy without building on the server via `docker-compose.registry.yml`, which requires
+a pinned `HAVEWA_TAG` in `.env` (e.g. `sha-abc1234`; `HAVEWA_IMAGE` overrides the image):
 
 ```bash
 docker compose -f docker-compose.registry.yml pull
 docker compose -f docker-compose.registry.yml up -d
 ```
+
+Operations on the host (the scripts expect the compose file and `.env` in `HAVEWA_DIR`,
+default `/opt/havewa`):
+
+- `deploy/update.sh <tag>`: back up, pin the tag in `.env`, pull, restart, prune old images.
+  Migrations run on start and are not undone by going back to an older tag; use restore for that.
+- `deploy/backup.sh`: `pg_dump` plus a `storage/` archive into `backups/`, 14-day local retention,
+  optional off-site copy via `BACKUP_RSYNC_TARGET` (e.g. a Hetzner Storage Box). Run it nightly from cron.
+- `deploy/restore.sh <stamp>`: replaces the database and `storage/` with that backup.
 
 ### Environment variables (production)
 
