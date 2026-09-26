@@ -16,6 +16,7 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
 import { SearchBox } from "@/components/search-box";
+import { toBcp47 } from "@/lib/format";
 
 export default async function AdminLayout({
   children,
@@ -37,7 +38,7 @@ export default async function AdminLayout({
     prisma.notification.count({ where: { userId: user.id, read: false } }),
   ]);
   const logoUrl = tenant?.logoKey ? "/api/logo" : undefined;
-  const dtf = new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" });
+  const dtf = new Intl.DateTimeFormat(toBcp47(locale), { dateStyle: "short", timeStyle: "short" });
   const notifItems = notifs.map((n) => ({
     id: n.id,
     title: n.title,

@@ -86,13 +86,18 @@ export default async function CalendarPage({
   const monthName = new Intl.DateTimeFormat(toBcp47(locale), {
     month: "long",
     year: "numeric",
+    timeZone: "UTC",
   }).format(new Date(Date.UTC(year, month, 1)));
-  // Monday-first week labels via Intl (matches DE calendar layout)
-  const weekdays = Array.from({ length: 7 }, (_, i) =>
-    new Intl.DateTimeFormat(toBcp47(locale), { weekday: "short" }).format(
-      new Date(Date.UTC(2024, 0, 1 + i)), // 2024-01-01 was Monday
-    ),
-  );
+  // Monday-first labels must use UTC (Date.UTC + getUTCDay grid). pt-PT `short`
+  // expands to full weekday names — use compact abbreviations instead.
+  const weekdays =
+    locale === "pt"
+      ? ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
+      : Array.from({ length: 7 }, (_, i) =>
+          new Intl.DateTimeFormat(toBcp47(locale), { weekday: "short", timeZone: "UTC" }).format(
+            new Date(Date.UTC(2024, 0, 1 + i)), // 2024-01-01 was Monday
+          ),
+        );
 
   const kindDot = (k: CalEvent["kind"]) =>
     k === "maintenance" ? "bg-amber-500" : k === "meeting" ? "bg-violet-500" : "bg-primary";

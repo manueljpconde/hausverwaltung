@@ -577,7 +577,7 @@
     "notConfigured": "Ainda não há conector bancário configurado.",
     "hint": "Crie uma aplicação Enable Banking em enablebanking.com, registe aí o URL de redirecionamento abaixo e guarde aqui o Application ID e a chave privada.",
     "redirectUrl": "URL de redirecionamento (registar no Enable Banking)",
-    "applicationId": "Application ID",
+    "applicationId": "ID da aplicação",
     "privateKey": "Chave privada (PEM)",
     "psuType": "Tipo de utilizador",
     "baseUrl": "URL base da API (opcional)",
@@ -598,7 +598,7 @@
     "title": "Modelo de área (comercial)",
     "enable": "Modelo de área",
     "totalArea": "Área total (m²)",
-    "pool": "Pool",
+    "pool": "Pool comum",
     "add": "Subárea",
     "edit": "Editar subárea",
     "label": "Designação",
@@ -1086,7 +1086,7 @@
     "title": "Portugal — workarounds fiscais",
     "saft": "SAF-T: exporte CSV / use a API para o software do contabilista (HaVeWa ainda não gera SAF-T).",
     "einvoice": "E-faturação: emita faturas certificadas noutro software; anexe PDF/XML em Documentos. Cobranças e pagamentos ficam aqui.",
-    "imi": "IMI: use Imposto predial / Property tax como registo manual (valor, taxa, notas) e guarde a caderneta/aviso como documento.",
+    "imi": "IMI: use Imposto predial como registo manual (valor, taxa, notas) e guarde a caderneta/aviso como documento.",
     "footnote": "Motores completos SAF-T / e-faturação AT / IMI ficam fora deste release."
   }
 }

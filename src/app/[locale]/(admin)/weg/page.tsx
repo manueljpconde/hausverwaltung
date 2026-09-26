@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { money } from "@/lib/format";
 import { allocate, type AllocationParticipant } from "@/lib/allocation";
 import { checkMeaTotal } from "@/lib/weg-validation";
-import { managementTypeMessageKey } from "@/lib/market";
+import { managementTypeMessageKey, wegNavKey } from "@/lib/market";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,7 +43,7 @@ export default async function WegPage({
   ]);
   const market = tenant?.market ?? "DE";
   const mgmtNs = managementTypeMessageKey(market);
-  const pageTitle = market === "PT" ? t("nav.condominio") : t("weg.title");
+  const pageTitle = t(wegNavKey(market));
   const typeLabel = t(`${mgmtNs}.WEG`);
 
   const propertyId = sp.propertyId || wegProps[0]?.id;
