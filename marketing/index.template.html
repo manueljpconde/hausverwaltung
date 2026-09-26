@@ -348,7 +348,7 @@ footer.site{padding:70px 0 40px;border-top:1px solid var(--border);background:va
       <img class="hero-logo" src="./logo.png" alt="{{APP_NAME}}" style="display:block;max-width:min(300px,66%);height:auto;margin:0 auto 18px;border-radius:14px">
       <div class="frame">
         <div class="frame-bar"><div class="dots"><i></i><i></i><i></i></div>
-          <div class="url"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>app.havewa.app/dashboard</div>
+          <div class="url"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>app.{{APP_SLUG}}.app/dashboard</div>
         </div>
         <img src="./screenshots/dashboard.png" alt="{{APP_NAME}} Dashboard mit Kennzahlen zu Objekten, Einheiten, Sollmiete, offenen Posten sowie Aufgaben, Fristen und KI-Assistent" data-i18n-alt="alt.dashboard" loading="eager">
       </div>
@@ -437,42 +437,42 @@ footer.site{padding:70px 0 40px;border-top:1px solid var(--border);background:va
     </div>
 
     <div class="panel active" id="s1" role="tabpanel">
-      <div class="frame"><div class="frame-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url">app.havewa.app/objekte</div></div>
+      <div class="frame"><div class="frame-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url">app.{{APP_SLUG}}.app/objekte</div></div>
         <img src="./screenshots/properties.png" alt="Objekt-, Gebäude- und Einheitenverwaltung in {{APP_NAME}}" data-i18n-alt="alt.properties" loading="lazy"></div>
       <div class="cap"><span class="num">01</span><div><h4 data-i18n="p1.h">Objekte, Gebäude &amp; Einheiten</h4><p data-i18n="p1.p">Der komplette Bestand auf einen Blick, Gebäude, Einheiten, Personen und Zähler in einer klaren Struktur.</p></div></div>
     </div>
     <div class="panel" id="s2" role="tabpanel" hidden>
-      <div class="frame"><div class="frame-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url">app.havewa.app/finanzen</div></div>
+      <div class="frame"><div class="frame-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url">app.{{APP_SLUG}}.app/finanzen</div></div>
         <img src="./screenshots/finances.png" alt="Finanzen mit Sollstellung, offenen Posten, Mahnwesen und SEPA in {{APP_NAME}}" data-i18n-alt="alt.finances" loading="lazy"></div>
       <div class="cap"><span class="num">02</span><div><h4 data-i18n="p2.h">Finanzen &amp; Mahnwesen</h4><p data-i18n="p2.p">Sollstellung, offene Posten, SEPA-Mandate und dreistufiges Mahnwesen, der Zahlungsstatus jederzeit aktuell.</p></div></div>
     </div>
     <div class="panel" id="s3" role="tabpanel" hidden>
-      <div class="frame"><div class="frame-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url">app.havewa.app/abrechnungen</div></div>
+      <div class="frame"><div class="frame-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url">app.{{APP_SLUG}}.app/abrechnungen</div></div>
         <img src="./screenshots/statements.png" alt="Betriebskostenabrechnung mit Verteilerschlüsseln und HeizkostenV 30/70 in {{APP_NAME}}" data-i18n-alt="alt.statements" loading="lazy"></div>
       <div class="cap"><span class="num">03</span><div><h4 data-i18n="p3.h">Betriebskostenabrechnung</h4><p data-i18n="p3.p">Verteilerschlüssel-Engine und HeizkostenV 30/70 nach Verbrauch, prüfsicher aufbereitet für jeden Mieter.</p></div></div>
     </div>
     <div class="panel" id="s4" role="tabpanel" hidden>
-      <div class="frame"><div class="frame-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url">app.havewa.app/versammlungen</div></div>
+      <div class="frame"><div class="frame-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url">app.{{APP_SLUG}}.app/versammlungen</div></div>
         <img src="./screenshots/meetings.png" alt="Eigentümerversammlung mit Tagesordnung und Beschlüssen in {{APP_NAME}}" data-i18n-alt="alt.meetings" loading="lazy"></div>
       <div class="cap"><span class="num">04</span><div><h4 data-i18n="p4.h">Eigentümerversammlung</h4><p data-i18n="p4.p">Tagesordnung, Abstimmungen und Beschlusssammlung nach §24 WEG, vollständig dokumentiert.</p></div></div>
     </div>
     <div class="panel" id="s5" role="tabpanel" hidden>
-      <div class="frame"><div class="frame-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url">app.havewa.app/instandhaltung</div></div>
+      <div class="frame"><div class="frame-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url">app.{{APP_SLUG}}.app/instandhaltung</div></div>
         <img src="./screenshots/tickets.png" alt="Instandhaltung mit Tickets, Handwerkern und Wartungsverträgen in {{APP_NAME}}" data-i18n-alt="alt.tickets" loading="lazy"></div>
       <div class="cap"><span class="num">05</span><div><h4 data-i18n="p5.h">Instandhaltung &amp; Tickets</h4><p data-i18n="p5.p">Von der Schadensmeldung bis zum beauftragten Handwerker, inklusive Wartungsfristen und Historie.</p></div></div>
     </div>
     <div class="panel" id="s6" role="tabpanel" hidden>
-      <div class="frame"><div class="frame-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url">app.havewa.app/dokumente</div></div>
+      <div class="frame"><div class="frame-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url">app.{{APP_SLUG}}.app/dokumente</div></div>
         <img src="./screenshots/documents.png" alt="GoBD-konforme Dokumentenverwaltung mit E-Rechnungs-Erkennung in {{APP_NAME}}" data-i18n-alt="alt.documents" loading="lazy"></div>
       <div class="cap"><span class="num">06</span><div><h4 data-i18n="p6.h">Dokumente &amp; E-Rechnung</h4><p data-i18n="p6.p">GoBD-konforme Ablage mit automatischer Erkennung von E-Rechnungen (ZUGFeRD), revisionssicher.</p></div></div>
     </div>
     <div class="panel" id="s7" role="tabpanel" hidden>
-      <div class="frame"><div class="frame-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url">app.havewa.app/kalender</div></div>
+      <div class="frame"><div class="frame-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url">app.{{APP_SLUG}}.app/kalender</div></div>
         <img src="./screenshots/calendar.png" alt="Kalender mit Monatsansicht für Termine und Fristen in {{APP_NAME}}" data-i18n-alt="alt.calendar" loading="lazy"></div>
       <div class="cap"><span class="num">07</span><div><h4 data-i18n="p7.h">Kalender &amp; Fristen</h4><p data-i18n="p7.p">Wartungen, Versammlungen und gesetzliche Fristen in einer übersichtlichen Monatsansicht.</p></div></div>
     </div>
     <div class="panel" id="s8" role="tabpanel" hidden>
-      <div class="frame"><div class="frame-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url">portal.havewa.app</div></div>
+      <div class="frame"><div class="frame-bar"><div class="dots"><i></i><i></i><i></i></div><div class="url">portal.{{APP_SLUG}}.app</div></div>
         <img src="./screenshots/portal.png" alt="Self-Service-Portal für Mieter und Eigentümer in {{APP_NAME}}" data-i18n-alt="alt.portal" loading="lazy"></div>
       <div class="cap"><span class="num">08</span><div><h4 data-i18n="p8.h">Mieter- &amp; Eigentümer-Portal</h4><p data-i18n="p8.p">Self-Service für Bewohner: Dokumente, Abrechnungen und Anliegen, rund um die Uhr, ohne Rückfragen.</p></div></div>
     </div>
