@@ -16,6 +16,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:crmware": "tsx prisma/seed-crmware-demo.ts",
+    "db:validate:crmware": "tsx prisma/seed-crmware-demo.ts --validate",
     "db:reset": "prisma migrate reset --force && tsx prisma/seed.ts",
     "db:studio": "prisma studio"
   },
