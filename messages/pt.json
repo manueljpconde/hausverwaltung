@@ -1,20 +1,20 @@
 {
   "app": {
-    "name": "HaVeWa",
-    "tagline": "Gestão imobiliária"
+    "tagline": "Gestão imobiliária",
+    "description": "Gestão imobiliária para arrendamentos e condomínios"
   },
   "about": {
-    "title": "Acerca do HaVeWa",
+    "title": "Acerca do {app}",
     "tagline": "Gestão de imóveis e condomínios",
     "beta": "Beta",
-    "betaNote": "O HaVeWa está em fase de testes beta. As funcionalidades podem mudar.",
+    "betaNote": "O {app} está em fase de testes beta. As funcionalidades podem mudar.",
     "version": "Versão",
     "build": "Build",
     "tenant": "Organização",
     "madeBy": "Desenvolvido por"
   },
   "legal": {
-    "copyright": "© 2026 Florian Gilde (HaVeWa) · Modifications © 2026 CRMware",
+    "copyright": "© 2026 Florian Gilde (HaVeWa) · Alterações © 2026 CRMware",
     "warranty": "Software livre sob a GNU Affero General Public License v3.0, sem qualquer garantia.",
     "source": "Código-fonte",
     "license": "Licença (AGPL-3.0)"
@@ -203,7 +203,7 @@
     "brandColor": "Cor do tema",
     "preview": "Pré-visualização",
     "submit": "Concluir configuração",
-    "welcomeTitle": "Bem-vindo ao HaVeWa",
+    "welcomeTitle": "Bem-vindo ao {app}",
     "welcomeText": "A sua gestão imobiliária ficará pronta em poucos passos. Pode saltar passos e completá-los mais tarde nas definições.",
     "brandingText": "Escolha uma cor de tema para a aplicação — alterável a qualquer momento.",
     "propertyText": "Opcional: criar já o seu primeiro imóvel.",
@@ -1084,7 +1084,7 @@
   },
   "fiscalWorkaround": {
     "title": "Portugal — workarounds fiscais",
-    "saft": "SAF-T: exporte CSV / use a API para o software do contabilista (HaVeWa ainda não gera SAF-T).",
+    "saft": "SAF-T: exporte CSV / use a API para o software do contabilista ({app} ainda não gera SAF-T).",
     "einvoice": "E-faturação: emita faturas certificadas noutro software; anexe PDF/XML em Documentos. Cobranças e pagamentos ficam aqui.",
     "imi": "IMI: use Imposto predial como registo manual (valor, taxa, notas) e guarde a caderneta/aviso como documento.",
     "footnote": "Motores completos SAF-T / e-faturação AT / IMI ficam fora deste release."

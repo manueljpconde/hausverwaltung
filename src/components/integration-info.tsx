@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Plug, Copy, Check, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { APP_SLUG } from "@/lib/brand";
 
 function CopyBtn({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
@@ -48,7 +49,7 @@ export function IntegrationInfo({ baseUrl }: { baseUrl: string }) {
 
   // Claude Desktop / MCP-Client Config (Streamable HTTP)
   const mcpConfig = JSON.stringify(
-    { mcpServers: { havewa: { url: mcpUrl, headers: { Authorization: "Bearer DEIN_TOKEN" } } } },
+    { mcpServers: { [APP_SLUG]: { url: mcpUrl, headers: { Authorization: "Bearer DEIN_TOKEN" } } } },
     null,
     2,
   );

@@ -2,6 +2,7 @@ import { authenticateBearer, type ApiPrincipal } from "@/lib/api-auth";
 import * as data from "@/lib/api-data";
 import { apiCreate, apiUpdate, apiDelete, listEntities, ENTITIES } from "@/lib/api-write";
 import { runOperation, listOperations, OPERATION_NAMES } from "@/lib/api-ops";
+import { APP_NAME } from "@/lib/brand";
 
 // MCP-Server (Model Context Protocol) über Streamable HTTP / JSON-RPC.
 // Auth: Bearer-Token (persönlicher API-Token). Der Agent (Claude, ChatGPT,
@@ -277,7 +278,7 @@ export async function POST(req: Request) {
       return rpc(id, {
         protocolVersion: params?.protocolVersion ?? PROTOCOL,
         capabilities: { tools: {} },
-        serverInfo: { name: "HaVeWa", version: "1.0.0" },
+        serverInfo: { name: APP_NAME, version: "1.0.0" },
       });
     case "ping":
       return rpc(id, {});

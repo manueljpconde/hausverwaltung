@@ -1,20 +1,24 @@
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "../globals.css";
+import { APP_NAME } from "@/lib/brand";
 
 const sans = Inter({ variable: "--font-sans", subsets: ["latin"], display: "swap" });
 const heading = Space_Grotesk({ variable: "--font-heading", subsets: ["latin"], display: "swap" });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
-export const metadata: Metadata = {
-  title: "HaVeWa — Hausverwaltung",
-  description: "Immobilienverwaltung für Miet- und WEG-Verwaltung",
-};
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  if (!hasLocale(routing.locales, locale)) return {};
+  const t = await getTranslations({ locale, namespace: "app" });
+  return { title: `${APP_NAME} — ${t("tagline")}`, description: t("description") };
+}
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));

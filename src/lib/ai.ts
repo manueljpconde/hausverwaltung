@@ -1,6 +1,7 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
+import { APP_NAME } from "@/lib/brand";
 
 // KI-Adapter. Unterstützt Anthropic (Claude) und beliebige OpenAI-kompatible
 // Anbieter (OpenAI, OpenRouter → Hermes/Llama/…, Groq, Ollama, LM Studio …)
@@ -35,7 +36,7 @@ export function isAiConfigured(cfg?: AiConfig): boolean {
   return !!resolveKey(cfg);
 }
 
-const SYSTEM = `Du bist der Assistent einer deutschen Hausverwaltungssoftware (HaVeWa).
+const SYSTEM = `Du bist der Assistent einer deutschen Hausverwaltungssoftware (${APP_NAME}).
 Beantworte Fragen zum verwalteten Immobilienbestand knapp, sachlich und auf Deutsch.
 Stütze dich ausschließlich auf die im Kontext gelieferten Daten; erfinde keine Zahlen.
 Wenn die Daten für eine Antwort nicht ausreichen, sage das offen.`;

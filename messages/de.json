@@ -1,13 +1,13 @@
 {
   "app": {
-    "name": "HaVeWa",
-    "tagline": "Hausverwaltung"
+    "tagline": "Hausverwaltung",
+    "description": "Immobilienverwaltung für Miet- und WEG-Verwaltung"
   },
   "about": {
-    "title": "Über HaVeWa",
+    "title": "Über {app}",
     "tagline": "Haus- & WEG-Verwaltung",
     "beta": "Beta",
-    "betaNote": "HaVeWa befindet sich in der Beta-Testphase. Funktionen können sich ändern.",
+    "betaNote": "{app} befindet sich in der Beta-Testphase. Funktionen können sich ändern.",
     "version": "Version",
     "build": "Build",
     "tenant": "Mandant",
@@ -203,7 +203,7 @@
     "brandColor": "Theme-Farbe",
     "preview": "Vorschau",
     "submit": "Einrichtung abschließen",
-    "welcomeTitle": "Willkommen bei HaVeWa",
+    "welcomeTitle": "Willkommen bei {app}",
     "welcomeText": "In wenigen Schritten ist Ihre Hausverwaltung startklar. Sie können Schritte überspringen und später in den Einstellungen ergänzen.",
     "brandingText": "Wählen Sie eine Theme-Farbe für Ihre App — jederzeit änderbar.",
     "propertyText": "Optional: legen Sie direkt Ihr erstes Objekt an.",
@@ -1084,7 +1084,7 @@
   },
   "fiscalWorkaround": {
     "title": "Portugal — steuerliche Workarounds",
-    "saft": "SAF-T: CSV-Export / API für die Buchhaltungssoftware (noch keine SAF-T-Datei aus HaVeWa).",
+    "saft": "SAF-T: CSV-Export / API für die Buchhaltungssoftware (noch keine SAF-T-Datei aus {app}).",
     "einvoice": "E-Rechnung: zertifizierte Rechnungen extern ausstellen; PDF/XML unter Dokumente ablegen. Sollstellungen und Zahlungen bleiben hier.",
     "imi": "IMI: Grundsteuer-Maske als manuelles Register (Wert, Satz, Notiz); Caderneta/Bescheid als Dokument speichern.",
     "footnote": "Vollständige SAF-T- / AT-E-Faturação- / IMI-Engines sind nicht Teil dieses Releases."

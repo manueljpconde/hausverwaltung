@@ -1,13 +1,13 @@
 {
   "app": {
-    "name": "HaVeWa",
-    "tagline": "Property Management"
+    "tagline": "Property Management",
+    "description": "Property management for rentals and homeowners’ associations"
   },
   "about": {
-    "title": "About HaVeWa",
+    "title": "About {app}",
     "tagline": "Property & HOA management",
     "beta": "Beta",
-    "betaNote": "HaVeWa is in its beta testing phase. Features may change.",
+    "betaNote": "{app} is in its beta testing phase. Features may change.",
     "version": "Version",
     "build": "Build",
     "tenant": "Tenant",
@@ -203,7 +203,7 @@
     "brandColor": "Theme colour",
     "preview": "Preview",
     "submit": "Complete setup",
-    "welcomeTitle": "Welcome to HaVeWa",
+    "welcomeTitle": "Welcome to {app}",
     "welcomeText": "Your property management will be ready in a few steps. You can skip steps and add them later in settings.",
     "brandingText": "Pick a theme colour for your app — changeable any time.",
     "propertyText": "Optional: create your first property right away.",
@@ -1084,7 +1084,7 @@
   },
   "fiscalWorkaround": {
     "title": "Portugal — fiscal workarounds",
-    "saft": "SAF-T: export CSV / use the API for your accountant’s software (no SAF-T file from HaVeWa yet).",
+    "saft": "SAF-T: export CSV / use the API for your accountant’s software (no SAF-T file from {app} yet).",
     "einvoice": "E-invoicing: issue certified invoices externally; attach PDF/XML under Documents. Charges and payments stay here.",
     "imi": "IMI: use Property tax as a manual register (value, rate, notes) and store the caderneta/notice as a document.",
     "footnote": "Full SAF-T / AT e-faturação / IMI engines are out of scope for this release."

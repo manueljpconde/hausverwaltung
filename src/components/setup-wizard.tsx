@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { APP_NAME } from "@/lib/brand";
 
 const PRESETS = [
   { name: "Indigo", color: "#4f46e5" },
@@ -83,7 +84,7 @@ export function SetupWizard() {
       <div className="min-h-[280px]">
         {/* 0 Willkommen */}
         <div className={cn("space-y-3 text-center", step !== 0 && "hidden")}>
-          <h2 className="text-xl font-semibold">{t("setup.welcomeTitle")}</h2>
+          <h2 className="text-xl font-semibold">{t("setup.welcomeTitle", { app: APP_NAME })}</h2>
           <p className="mx-auto max-w-sm text-sm text-muted-foreground">{t("setup.welcomeText")}</p>
         </div>
 

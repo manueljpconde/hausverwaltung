@@ -28,7 +28,7 @@ describe("AGPL-3.0: Quellcode-Angebot und rechtliche Hinweise (#14)", () => {
 
   it("Info-Drawer (Verwaltung und Portal) zeigt alle Hinweise und beide Links", () => {
     const src = read("src/components/info-drawer.tsx");
-    for (const needle of ["SOURCE_URL", "LICENSE_URL", 'legal("copyright")', 'legal("warranty")', 'legal("source")', 'legal("license")']) {
+    for (const needle of ["SOURCE_URL", "LICENSE_URL", 'legal("copyright"', 'legal("warranty")', 'legal("source")', 'legal("license")']) {
       expect(src).toContain(needle);
     }
   });
