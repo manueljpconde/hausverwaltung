@@ -29,7 +29,10 @@ export default async function AdminLayout({
   const locale = await getLocale();
   const t = await getTranslations();
   const [tenant, notifs, unread] = await Promise.all([
-    prisma.tenant.findUnique({ where: { id: user.tenantId }, select: { name: true, brandColor: true, logoKey: true } }),
+    prisma.tenant.findUnique({
+      where: { id: user.tenantId },
+      select: { name: true, brandColor: true, logoKey: true, market: true },
+    }),
     prisma.notification.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 20 }),
     prisma.notification.count({ where: { userId: user.id, read: false } }),
   ]);
@@ -51,7 +54,7 @@ export default async function AdminLayout({
       {tenant?.brandColor && (
         <style>{`:root{--primary:${tenant.brandColor};--sidebar-primary:${tenant.brandColor};--ring:${tenant.brandColor};--primary-foreground:${readableForeground(tenant.brandColor)};--sidebar-primary-foreground:${readableForeground(tenant.brandColor)};}`}</style>
       )}
-      <AppSidebar logoUrl={logoUrl} superAdmin={user.superAdmin} />
+      <AppSidebar logoUrl={logoUrl} superAdmin={user.superAdmin} market={tenant?.market ?? "DE"} />
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger />

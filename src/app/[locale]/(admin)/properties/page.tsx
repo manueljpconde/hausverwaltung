@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { requireUser } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
+import { managementTypeMessageKey } from "@/lib/market";
 import { Download } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +24,7 @@ export default async function PropertiesPage() {
   const user = await requireUser();
   const t = await getTranslations();
 
-  const [properties, customDefs] = await Promise.all([
+  const [properties, customDefs, tenant] = await Promise.all([
     prisma.property.findMany({
       where: { tenantId: user.tenantId },
       include: { buildings: { include: { _count: { select: { units: true } } } } },
@@ -34,7 +35,9 @@ export default async function PropertiesPage() {
       orderBy: { createdAt: "asc" },
       select: { key: true, label: true },
     }),
+    prisma.tenant.findUnique({ where: { id: user.tenantId }, select: { market: true } }),
   ]);
+  const mgmtNs = managementTypeMessageKey(tenant?.market ?? "DE");
   const importPresets = (
     await prisma.importPreset.findMany({ where: { tenantId: user.tenantId, entity: "property" }, orderBy: { createdAt: "asc" } })
   ).map((p) => ({ id: p.id, name: p.name, mapping: p.mapping as Record<string, number> }));
@@ -55,7 +58,7 @@ export default async function PropertiesPage() {
             {t("common.exportCsv")}
           </Button>
           <ImportDialog entity="property" presets={importPresets} />
-          <PropertyDialog customDefs={customDefs} />
+          <PropertyDialog customDefs={customDefs} managementTypeNs={mgmtNs} />
         </div>
       </div>
 
@@ -87,7 +90,7 @@ export default async function PropertiesPage() {
                     <TableCell>{t(`propertyType.${p.type}`)}</TableCell>
                     <TableCell>
                       <Badge variant={p.management === "WEG" ? "secondary" : "outline"}>
-                        {t(`managementType.${p.management}`)}
+                        {t(`${mgmtNs}.${p.management}`)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
@@ -99,6 +102,7 @@ export default async function PropertiesPage() {
                       <div className="flex justify-end gap-1">
                         <PropertyDialog
                           customDefs={customDefs}
+                          managementTypeNs={mgmtNs}
                           property={{
                             id: p.id,
                             name: p.name,

@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "HaVeWa",
-    "tagline": "Property Management"
+    "tagline": "Gestão imobiliária"
   },
   "about": {
     "title": "About HaVeWa",
@@ -12,12 +12,6 @@
     "build": "Build",
     "tenant": "Tenant",
     "madeBy": "Built by"
-  },
-  "legal": {
-    "copyright": "© 2026 Florian Gilde (HaVeWa) · Modifications © 2026 CRMware",
-    "warranty": "Free software under the GNU Affero General Public License v3.0, without any warranty.",
-    "source": "Source code",
-    "license": "Licence (AGPL-3.0)"
   },
   "common": {
     "search": "Search",
@@ -60,7 +54,7 @@
     "finances": "Finances",
     "dunning": "Dunning",
     "statements": "Statements",
-    "weg": "HOA Management",
+    "weg": "Administração de condomínio",
     "meetings": "Meetings",
     "tickets": "Maintenance",
     "documents": "Documents",
@@ -79,7 +73,7 @@
     "groupOperations": "Operations",
     "groupMore": "More",
     "groupAdmin": "Administration",
-    "condominio": "Condominium"
+    "condominio": "Condomínio"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -147,11 +141,11 @@
     "tenantName": "Tenant name",
     "save": "Save",
     "saved": "Saved",
-    "market": "Market / jurisdiction",
-    "marketLabel": "Market",
-    "marketDE": "Germany (DE)",
+    "market": "Mercado / jurisdição",
+    "marketLabel": "Mercado",
+    "marketDE": "Alemanha (DE)",
     "marketPT": "Portugal (PT)",
-    "marketHint": "Controls legal vocabulary and modules (rental/condo vs Miet/WEG). UI language is independent."
+    "marketHint": "Define o vocabulário legal e os módulos (arrendamento/condomínio vs Miet/WEG). A língua da UI é independente."
   },
   "account": {
     "changePassword": "Change password",
@@ -258,7 +252,7 @@
     "ssoSubmit": "Sign in with {provider}",
     "error": "Invalid email or password",
     "demoHint": "Demo: admin@havewa.app / admin",
-    "tagline": "Rental and condominium management in one system.",
+    "tagline": "Arrendamento e condomínio num só sistema.",
     "point1": "Service-charge statements per BetrKV & HeizkostenV",
     "point2": "HOA annual statements, meetings & reserves",
     "point3": "Tenant/owner portals and AI assistant",
@@ -352,8 +346,8 @@
     "SONSTIGE": "Other"
   },
   "managementType": {
-    "MIET": "Rental management",
-    "WEG": "HOA management"
+    "MIET": "Gestão de arrendamento",
+    "WEG": "Administração de condomínio"
   },
   "propertyType": {
     "WOHNEN": "Residential",
@@ -942,10 +936,10 @@
     "VERTAGT": "Postponed"
   },
   "weg": {
-    "title": "HOA management",
-    "subtitle": "Owners, economic plan, HOA fee, reserves, annual statement",
-    "property": "HOA property",
-    "noWeg": "No HOA properties. Create a property with management type HOA.",
+    "title": "Condomínio",
+    "subtitle": "Condóminos, orçamento, quotas, fundo de reserva, contas anuais",
+    "property": "Imóvel (condomínio)",
+    "noWeg": "Ainda não há imóveis em regime de condomínio. Crie ou edite um imóvel com tipo de gestão Condomínio.",
     "owners": "Owners",
     "addOwner": "Assign owner",
     "noOwners": "No owners assigned yet.",
@@ -970,8 +964,8 @@
     "annual": "Annual statement",
     "actualTotal": "Total actual cost",
     "noActual": "No actual costs (cost items) for this year.",
-    "createWegCta": "Create or edit a property",
-    "noWegHint": "Set Management type to HOA / WEG on the property, then return here."
+    "createWegCta": "Criar ou editar imóvel",
+    "noWegHint": "Defina o tipo de gestão como Condomínio no imóvel e volte aqui."
   },
   "assistant": {
     "title": "AI assistant",
@@ -1079,14 +1073,14 @@
     "noResults": "No results."
   },
   "managementTypePt": {
-    "MIET": "Rental",
-    "WEG": "Condominium"
+    "MIET": "Arrendamento",
+    "WEG": "Condomínio"
   },
   "fiscalWorkaround": {
-    "title": "Portugal — fiscal workarounds",
-    "saft": "SAF-T: export CSV / use the API for your accountant’s software (no SAF-T file from HaVeWa yet).",
-    "einvoice": "E-invoicing: issue certified invoices externally; attach PDF/XML under Documents. Charges and payments stay here.",
-    "imi": "IMI: use Property tax as a manual register (value, rate, notes) and store the caderneta/notice as a document.",
-    "footnote": "Full SAF-T / AT e-faturação / IMI engines are out of scope for this release."
+    "title": "Portugal — workarounds fiscais",
+    "saft": "SAF-T: exporte CSV / use a API para o software do contabilista (HaVeWa ainda não gera SAF-T).",
+    "einvoice": "E-faturação: emita faturas certificadas noutro software; anexe PDF/XML em Documentos. Cobranças e pagamentos ficam aqui.",
+    "imi": "IMI: use Imposto predial / Property tax como registo manual (valor, taxa, notas) e guarde a caderneta/aviso como documento.",
+    "footnote": "Motores completos SAF-T / e-faturação AT / IMI ficam fora deste release."
   }
 }

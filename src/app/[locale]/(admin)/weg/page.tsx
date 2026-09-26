@@ -49,7 +49,13 @@ export default async function WegPage({
           <h1 className="text-2xl font-semibold tracking-tight">{t("weg.title")}</h1>
           <p className="text-sm text-muted-foreground">{t("weg.subtitle")}</p>
         </div>
-        <p className="text-sm text-muted-foreground">{t("weg.noWeg")}</p>
+        <div className="space-y-3 rounded-lg border border-dashed p-6">
+          <p className="text-sm text-muted-foreground">{t("weg.noWeg")}</p>
+          <p className="text-xs text-muted-foreground">{t("weg.noWegHint")}</p>
+          <Button size="sm" render={<Link href="/properties" />}>
+            {t("weg.createWegCta")}
+          </Button>
+        </div>
       </div>
     );
   }
