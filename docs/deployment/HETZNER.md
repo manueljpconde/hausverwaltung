@@ -193,3 +193,7 @@ It deletes the demo volumes, starts the stack, waits for the migrations, runs
 `prisma/seed-crmware-demo.ts` with the same image from the host (`NODE_ENV=development`,
 `ALLOW_DEMO_SEED=1`, database `127.0.0.1:5433/havewa_demo`) and then `--validate`. It never runs
 a compose command on the main stack.
+
+The seed dates everything relative to **today**, so the demo data ages: reset at least once a
+month (e.g. right before a presentation). Seed and `--validate` each take today's date; don't run
+a reset across midnight UTC at the end of a month, or validation fails on the shifted anchor.
