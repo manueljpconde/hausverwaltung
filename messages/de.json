@@ -1083,7 +1083,7 @@
   },
   "fiscalWorkaround": {
     "title": "Portugal — steuerliche Workarounds",
-    "saft": "SAF-T: CSV-Export / API für die Buchhaltungssoftware (noch keine SAF-T-Datei aus HaVeWa).",
+    "saft": "SAF-T: CSV-Export / API für die Buchhaltungssoftware (noch keine SAF-T-Datei aus {app}).",
     "einvoice": "E-Rechnung: zertifizierte Rechnungen extern ausstellen; PDF/XML unter Dokumente ablegen. Sollstellungen und Zahlungen bleiben hier.",
     "imi": "IMI: Grundsteuer-Maske als manuelles Register (Wert, Satz, Notiz); Caderneta/Bescheid als Dokument speichern.",
     "footnote": "Vollständige SAF-T- / AT-E-Faturação- / IMI-Engines sind nicht Teil dieses Releases."
