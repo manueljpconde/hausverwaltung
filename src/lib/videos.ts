@@ -1,19 +1,31 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { APP_SLUG } from "@/lib/brand";
 
-/**
- * Listet alle Hintergrundvideos aus public/videos/ (mp4/webm).
- * Einfach weitere Dateien dort ablegen — sie rotieren automatisch.
- */
-export async function listBackgroundVideos(): Promise<string[]> {
+const VIDEO = /\.(mp4|webm)$/i;
+
+async function videosIn(baseDir: string, folder: string): Promise<string[]> {
   try {
-    const dir = path.join(process.cwd(), "public", "videos");
-    const files = await fs.readdir(dir);
+    const files = await fs.readdir(path.join(baseDir, folder));
     return files
-      .filter((f) => /\.(mp4|webm)$/i.test(f))
+      .filter((f) => VIDEO.test(f))
       .sort()
-      .map((f) => `/videos/${f}`);
+      .map((f) => `/videos/${folder}/${f}`);
   } catch {
     return [];
   }
+}
+
+/**
+ * Hintergrundvideos für Login/Setup: public/videos/<APP_SLUG>/ (mp4/webm), falls dort
+ * Videos liegen, sonst public/videos/default/. Mehrere Dateien rotieren automatisch.
+ */
+export async function listBackgroundVideos({
+  baseDir = path.join(process.cwd(), "public", "videos"),
+  slug = APP_SLUG,
+}: { baseDir?: string; slug?: string } = {}): Promise<string[]> {
+  // Nur ein einzelnes Pfadsegment — sonst könnte ein Slug aus public/videos herausführen.
+  if (!/^[a-z0-9-]+$/.test(slug)) throw new Error(`Ungültiger slug für Hintergrundvideos: ${JSON.stringify(slug)}`);
+  const brand = await videosIn(baseDir, slug);
+  return brand.length > 0 ? brand : videosIn(baseDir, "default");
 }
