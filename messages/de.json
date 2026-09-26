@@ -1,6 +1,7 @@
 {
   "app": {
-    "tagline": "Hausverwaltung"
+    "tagline": "Hausverwaltung",
+    "description": "Immobilienverwaltung für Miet- und WEG-Verwaltung"
   },
   "about": {
     "title": "Über {app}",

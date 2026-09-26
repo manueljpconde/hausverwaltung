@@ -1,6 +1,7 @@
 {
   "app": {
-    "tagline": "Property Management"
+    "tagline": "Property Management",
+    "description": "Property management for rentals and homeowners’ associations"
   },
   "about": {
     "title": "About {app}",
