@@ -1,0 +1,29 @@
+import { describe, it, expect } from "vitest";
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { LANDING_FEATURES, LANDING_TRUST, landingIcon, posterFor } from "./landing";
+import { listBackgroundVideos } from "./videos";
+
+// #33: Icons und Standbilder der Landingpage liegen im Repo, sind sicher und klein.
+const pub = (url: string) => new URL(`../../public${url}`, import.meta.url);
+
+describe("Landing-Assets (#33)", () => {
+  it("jedes verwendete Icon existiert und ist ein reines SVG", () => {
+    for (const { icon } of [...LANDING_FEATURES, ...LANDING_TRUST]) {
+      const file = pub(landingIcon(icon));
+      expect(existsSync(file), icon).toBe(true);
+      const svg = readFileSync(file, "utf8");
+      expect(svg).toMatch(/<svg /);
+      expect(svg).not.toMatch(/<script|foreignObject|href=|\son[a-z]+=/i);
+    }
+  });
+
+  it("jedes Hintergrundvideo hat ein Standbild ≤ 150 KB", async () => {
+    const all = [...(await listBackgroundVideos()), ...(await listBackgroundVideos({ slug: "default" }))];
+    expect(all.length).toBeGreaterThan(0);
+    for (const v of all) {
+      const poster = pub(posterFor(v));
+      expect(existsSync(poster), v).toBe(true);
+      expect(statSync(poster).size, v).toBeLessThanOrEqual(150 * 1024);
+    }
+  });
+});
