@@ -775,7 +775,7 @@
     "total": "Total allocatable",
     "noUnits": "Property has no units.",
     "hint": "Positive balance = credit (refund), negative = arrears.",
-    "heatingHint": "Heating and hot-water costs are split per the German HeizkostenV: 30% by area, 70% by metered consumption.",
+    "heatingHint": "Heating and hot-water costs are split per the German HeizkostenV, partly by area and partly by metered consumption.",
     "bookCharges": "Book arrears",
     "mailTenants": "Email to tenants",
     "charged": "Arrears booked as charges.",
@@ -1063,7 +1063,7 @@
   },
   "print": {
     "printPdf": "Print / PDF",
-    "heatingNote": "Heating and hot-water costs were split per the German HeizkostenV: 30% by living area and 70% by metered consumption.",
+    "heatingNote": "Heating and hot-water costs were split per the German HeizkostenV, partly by living area and partly by metered consumption.",
     "reminderTitle": "Payment reminder",
     "dunningTitle": "Dunning notice",
     "dunningIntro": "the following amount is still outstanding for unit {unit}:",
