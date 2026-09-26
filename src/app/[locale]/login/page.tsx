@@ -9,7 +9,7 @@ import { BackgroundVideo } from "@/components/background-video";
 import { LoginForm } from "@/components/login-form";
 import { oidcConfigFromEnv } from "@/lib/sso";
 import { APP_VERSION_LABEL, APP_VERSION_FULL, SOURCE_URL, LICENSE_URL } from "@/lib/version";
-import { APP_NAME, BRAND_LOGO_URL, BRAND_ICON_URL } from "@/lib/brand";
+import { APP_NAME, BRAND_LOGO_URL } from "@/lib/brand";
 import { Link } from "@/i18n/navigation";
 
 export default async function LoginPage() {
@@ -71,14 +71,6 @@ export default async function LoginPage() {
         </div>
 
         <div className="text-xs text-white/70">© 2026 {APP_NAME}</div>
-
-        {/* Produkt-Icon unten rechts im Video-Bereich */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={BRAND_ICON_URL}
-          alt={APP_NAME}
-          className="pointer-events-none absolute bottom-6 right-6 h-20 w-auto object-contain opacity-90 drop-shadow-lg"
-        />
       </div>
 
       {/* Formularseite */}

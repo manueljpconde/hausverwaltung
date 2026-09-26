@@ -79,3 +79,11 @@ describe("CrmWare nutzt die offiziellen Vektordateien (#24)", () => {
     }
   });
 });
+
+describe("Kein Logo über dem Hintergrundvideo (#24)", () => {
+  it("Login und Setup legen kein Marken-Icon über das Video (das Video trägt die Marke selbst)", () => {
+    for (const page of ["src/app/[locale]/login/page.tsx", "src/app/[locale]/setup/page.tsx"]) {
+      expect(read(page)).not.toContain("BRAND_ICON_URL");
+    }
+  });
+});
