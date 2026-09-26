@@ -66,4 +66,17 @@ describe("/marketing (#33)", () => {
     const page = read("src/app/marketing/page.tsx");
     expect(page).toContain('className="absolute inset-0 -z-10 bg-black/75 lg:bg-transparent lg:bg-gradient-to-r lg:from-black/85 lg:via-black/70 lg:to-black/40"');
   });
+
+  it("Standbild im Hero ist das LCP-Element und wird priorisiert geladen", () => {
+    const page = read("src/app/marketing/page.tsx");
+    expect(page).toMatch(/fetchPriority="high"/);
+    expect(page).toContain("srcSet={`${posterSmall} 800w, ${poster} 1280w`}");
+    expect(page).toContain('sizes="100vw"');
+  });
+
+  it("keine Karte „Código aberto“, Quellcode-Link nur im Fußbereich", () => {
+    const page = read("src/app/marketing/page.tsx");
+    expect(page).not.toContain("openSource");
+    expect(page.match(/href=\{SOURCE_URL\}/g)?.length).toBe(1);
+  });
 });

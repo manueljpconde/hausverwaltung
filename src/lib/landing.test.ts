@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { APP_SLUG } from "./brand";
-import { LANDING_CTA_URL, LANDING_FEATURES, LANDING_TRUST, LANDING_SCREENSHOT, landingIcon, posterFor } from "./landing";
+import { LANDING_CTA_URL, LANDING_FEATURES, LANDING_TRUST, LANDING_SCREENSHOT, landingIcon, posterFor, posterSmallFor } from "./landing";
 
 // #33: PT-Landingpage — Texte, Konstanten, Grenzen des Inhalts.
 const read = (p: string) => readFileSync(new URL(`../../${p}`, import.meta.url), "utf8");
@@ -14,12 +14,15 @@ describe("Landing-Inhalt (#33)", () => {
     expect(LANDING_CTA_URL).toBe("https://crmware.pt/pt/contact?utm_source=realestate&utm_medium=landing");
   });
 
-  it("vier Bereiche und fünf Vertrauensaussagen, jeweils mit Text in pt", () => {
+  it("vier Bereiche und vier Vertrauensaussagen, jeweils mit Text in pt", () => {
     expect(LANDING_FEATURES.map((f) => f.key)).toEqual(["rental", "condo", "operations", "portal"]);
     for (const f of LANDING_FEATURES) {
       for (const k of ["title", "p1", "p2", "p3"]) expect(landing.features[f.key][k]).toBeTruthy();
     }
-    expect(LANDING_TRUST.map((t) => t.key)).toEqual(["hosting", "access", "language", "openSource", "api"]);
+    expect(LANDING_TRUST.map((t) => t.key)).toEqual(["hosting", "access", "language", "api"]);
+    // Karte „Código aberto“ auf Wunsch entfernt; Quellcode-Link bleibt im Fußbereich (AGPL).
+    expect(landing.trust.openSource).toBeUndefined();
+    expect(landing.trust.openSourceLink).toBeUndefined();
     for (const t of LANDING_TRUST) expect(landing.trust[t.key]).toBeTruthy();
   });
 
@@ -28,6 +31,7 @@ describe("Landing-Inhalt (#33)", () => {
     expect(LANDING_SCREENSHOT).toBe(`/brand/${APP_SLUG}/landing/dashboard.webp`);
     expect(posterFor("/videos/crmware/a.mp4")).toBe("/videos/crmware/a.jpg");
     expect(posterFor("/videos/default/b.webm")).toBe("/videos/default/b.jpg");
+    expect(posterSmallFor("/videos/crmware/a.mp4")).toBe("/videos/crmware/a-800.jpg");
   });
 
   it("verbotene Inhalte kommen nicht vor", () => {

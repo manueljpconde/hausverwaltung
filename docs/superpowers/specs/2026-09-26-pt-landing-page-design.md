@@ -84,7 +84,7 @@ faturação/SAF-T/e-fatura, IMI).
   (from the CrmWare website repo `assets/rune-icons/outline/`), rendered as decorative
   `<img alt="">`. Mapping: Arrendamento → `file-text`, Condomínio → `users`, Operações → `clock`,
   Portal → `contact`; Porquê CrmWare: EU hosting → `server`, perfis e auditoria →
-  `shield-check`, português de Portugal → `circle-check`, código aberto → `git-branch`, API/MCP → `link`.
+  `shield-check`, português de Portugal → `circle-check`, API/MCP → `link`.
 - Call to action URL (one constant): `https://crmware.pt/pt/contact?utm_source=realestate&utm_medium=landing`.
   The UTM parameters carry no personal data; attribution does not depend on them (referrer origin,
   see Goal). No `Referrer-Policy` that would strip the origin may be set on this page.
@@ -120,15 +120,13 @@ faturação/SAF-T/e-fatura, IMI).
      em aberto e histórico de pagamentos · acedem às deliberações e documentos
 4. **O produto** — the dashboard screenshot with a one-line caption ("Painel com arrendamentos e
    condomínios, rendas, valores em aberto e pedidos — dados de demonstração.").
-5. **Porquê CrmWare**, five statements. They are self-declared on the page (only the open-source
-   one carries a link); each is **verified before publication** as listed:
+5. **Porquê CrmWare**, four statements (the open-source card was removed by the product owner; the source link stays in the footer). They are self-declared on the page (no links); each is **verified before publication** as listed:
    - "Servidores na Alemanha (União Europeia)" — verified: this deployment runs on Hetzner Cloud,
      location nbg1 (Nuremberg).
    - "Acessos por perfil e registo de auditoria das alterações" — verified: role-based access
      (`src/lib/rbac.ts`) and the audit log (`/pt/audit`) exist. No "all changes" absolute, no
      certification claim.
    - "Interface em português de Portugal" — verified by the page and the screenshot.
-   - "Código aberto (AGPL-3.0)" — links to the source (`SOURCE_URL`).
    - "API REST e servidor MCP, com token pessoal, para ligar ferramentas e assistentes de IA aos
      seus dados" — verified by a functional test (see Testing). No product names (the MCP server
      uses a bearer token; e.g. ChatGPT connectors expect OAuth), and no "read-only" claim for the

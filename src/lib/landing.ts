@@ -16,7 +16,6 @@ export const LANDING_TRUST = [
   { key: "hosting", icon: "server" },
   { key: "access", icon: "shield-check" },
   { key: "language", icon: "circle-check" },
-  { key: "openSource", icon: "git-branch" },
   { key: "api", icon: "link" },
 ] as const;
 
@@ -26,3 +25,6 @@ export const LANDING_SCREENSHOT = `/brand/${APP_SLUG}/landing/dashboard.webp`;
 
 /** Standbild zu einem Hintergrundvideo: gleicher Pfad, Endung .jpg. */
 export const posterFor = (videoUrl: string) => videoUrl.replace(/\.(mp4|webm)$/i, ".jpg");
+
+/** Kleines Standbild (800 px) für schmale Bildschirme — LCP auf dem Telefon (412 px × 1,75 DPR). */
+export const posterSmallFor = (videoUrl: string) => videoUrl.replace(/\.(mp4|webm)$/i, "-800.jpg");

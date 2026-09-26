@@ -77,8 +77,6 @@
       "hosting": "Servidores na Alemanha (União Europeia)",
       "access": "Acessos por perfil e registo de auditoria das alterações",
       "language": "Interface em português de Portugal",
-      "openSource": "Código aberto (AGPL-3.0)",
-      "openSourceLink": "Ver o código",
       "api": "API REST e servidor MCP, com token pessoal, para ligar ferramentas e assistentes de IA aos seus dados"
     },
     "closing": {

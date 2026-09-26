@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync, statSync } from "node:fs";
-import { LANDING_FEATURES, LANDING_TRUST, landingIcon, posterFor } from "./landing";
+import { LANDING_FEATURES, LANDING_TRUST, landingIcon, posterFor, posterSmallFor } from "./landing";
 import { listBackgroundVideos } from "./videos";
 
 // #33: Icons und Standbilder der Landingpage liegen im Repo, sind sicher und klein.
@@ -24,6 +24,9 @@ describe("Landing-Assets (#33)", () => {
       const poster = pub(posterFor(v));
       expect(existsSync(poster), v).toBe(true);
       expect(statSync(poster).size, v).toBeLessThanOrEqual(150 * 1024);
+      const small = pub(posterSmallFor(v));
+      expect(existsSync(small), v).toBe(true);
+      expect(statSync(small).size, v).toBeLessThanOrEqual(40 * 1024);
     }
   });
 

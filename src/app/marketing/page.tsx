@@ -5,7 +5,7 @@ import { APP_NAME, BRAND_LOGO_URL } from "@/lib/brand";
 import { SOURCE_URL } from "@/lib/version";
 import { listBackgroundVideos } from "@/lib/videos";
 import { BackgroundVideo } from "@/components/background-video";
-import { LANDING_CTA_URL, LANDING_FEATURES, LANDING_TRUST, LANDING_SCREENSHOT, landingIcon, posterFor } from "@/lib/landing";
+import { LANDING_CTA_URL, LANDING_FEATURES, LANDING_TRUST, LANDING_SCREENSHOT, landingIcon, posterFor, posterSmallFor } from "@/lib/landing";
 
 // Pro Anfrage rendern: Canonical/OG-URL werden absolut aus AUTH_URL (Laufzeit, je Deployment).
 export const dynamic = "force-dynamic";
@@ -30,6 +30,7 @@ export default async function MarketingPage() {
   const t = await texts();
   const videos = await listBackgroundVideos();
   const poster = videos[0] ? posterFor(videos[0]) : undefined;
+  const posterSmall = videos[0] ? posterSmallFor(videos[0]) : undefined;
 
   return (
     <>
@@ -58,7 +59,14 @@ export default async function MarketingPage() {
         <section className="relative isolate overflow-hidden text-white">
           {poster && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={poster} alt="" className="absolute inset-0 -z-20 size-full object-cover" />
+            <img
+              src={poster}
+              srcSet={`${posterSmall} 800w, ${poster} 1280w`}
+              sizes="100vw"
+              alt=""
+              fetchPriority="high"
+              className="absolute inset-0 -z-20 size-full object-cover"
+            />
           )}
           <BackgroundVideo
             sources={videos}
@@ -131,17 +139,12 @@ export default async function MarketingPage() {
           <h2 id="porque-titulo" className="text-2xl font-bold">
             {t("trust.title", { app: APP_NAME })}
           </h2>
-          <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
+          <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {LANDING_TRUST.map((item) => (
               <li key={item.key} className="cw-card text-sm">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={landingIcon(item.icon)} alt="" className="size-7" />
                 <p className="mt-3 font-bold">{t(`trust.${item.key}`)}</p>
-                {item.key === "openSource" && (
-                  <a href={SOURCE_URL} className="mt-2 inline-block underline underline-offset-4">
-                    {t("trust.openSourceLink")}
-                  </a>
-                )}
               </li>
             ))}
           </ul>
