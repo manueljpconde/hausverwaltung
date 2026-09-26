@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { APP_SLUG } from "@/lib/brand";
 
 // CSV-Vorlagen für den Import (#33): zeigen die erwartete Spaltenstruktur mit
 // einer Beispielzeile. Deutsche Header werden vom Import ebenfalls akzeptiert.
@@ -17,7 +18,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ entity:
   return new Response("﻿" + csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="havewa-${entity}-template.csv"`,
+      "Content-Disposition": `attachment; filename="${APP_SLUG}-${entity}-template.csv"`,
     },
   });
 }

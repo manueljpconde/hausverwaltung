@@ -1,20 +1,19 @@
 {
   "app": {
-    "name": "HaVeWa",
     "tagline": "Property Management"
   },
   "about": {
-    "title": "About HaVeWa",
+    "title": "About {app}",
     "tagline": "Property & HOA management",
     "beta": "Beta",
-    "betaNote": "HaVeWa is in its beta testing phase. Features may change.",
+    "betaNote": "{app} is in its beta testing phase. Features may change.",
     "version": "Version",
     "build": "Build",
     "tenant": "Tenant",
     "madeBy": "Built by"
   },
   "legal": {
-    "copyright": "© 2026 Florian Gilde (HaVeWa) · Modifications © 2026 CRMware",
+    "copyright": "{app} is based on HaVeWa © 2026 Florian Gilde · Modifications © 2026 CRMware",
     "warranty": "Free software under the GNU Affero General Public License v3.0, without any warranty.",
     "source": "Source code",
     "license": "Licence (AGPL-3.0)"
@@ -197,7 +196,7 @@
     "brandColor": "Theme colour",
     "preview": "Preview",
     "submit": "Complete setup",
-    "welcomeTitle": "Welcome to HaVeWa",
+    "welcomeTitle": "Welcome to {app}",
     "welcomeText": "Your property management will be ready in a few steps. You can skip steps and add them later in settings.",
     "brandingText": "Pick a theme colour for your app — changeable any time.",
     "propertyText": "Optional: create your first property right away.",

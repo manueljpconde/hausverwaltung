@@ -10,6 +10,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { APP_VERSION, APP_VERSION_LABEL, APP_BUILD, APP_SHA, SOURCE_URL, LICENSE_URL } from "@/lib/version";
+import { APP_NAME } from "@/lib/brand";
 
 const GILDE_URL = "https://www.gilde.org";
 const GILDE_LOGO = "https://www.gilde.org/gilde/logo.svg";
@@ -21,7 +22,7 @@ export function InfoDrawer({ tenantName }: { tenantName: string }) {
   return (
     <Sheet>
       <SheetTrigger
-        render={<Button variant="ghost" size="icon" aria-label={t("title")} title={t("title")} />}
+        render={<Button variant="ghost" size="icon" aria-label={t("title", { app: APP_NAME })} title={t("title", { app: APP_NAME })} />}
       >
         <Info className="size-5" />
       </SheetTrigger>
@@ -33,10 +34,10 @@ export function InfoDrawer({ tenantName }: { tenantName: string }) {
           <div className="relative flex flex-col items-center text-center">
             <div className="grid size-56 place-items-center rounded-3xl bg-white/15 shadow-lg ring-1 ring-white/30 backdrop-blur">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="HaVeWa" className="size-48 rounded-2xl object-contain" />
+              <img src="/logo.png" alt={APP_NAME} className="size-48 rounded-2xl object-contain" />
             </div>
             <SheetTitle className="mt-4 text-2xl font-semibold tracking-tight text-white">
-              HaVeWa
+              {APP_NAME}
             </SheetTitle>
             <p className="text-sm text-white/80">{t("tagline")}</p>
           </div>
@@ -54,7 +55,7 @@ export function InfoDrawer({ tenantName }: { tenantName: string }) {
         <div className="space-y-5 p-5">
           {/* Beta-Hinweis */}
           <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-800 dark:text-amber-300">
-            {t("betaNote")}
+            {t("betaNote", { app: APP_NAME })}
           </p>
 
           {/* Version & Mandant */}
@@ -80,7 +81,7 @@ export function InfoDrawer({ tenantName }: { tenantName: string }) {
 
           {/* Rechtliche Hinweise (AGPL-3.0 §5d, §13) */}
           <div className="space-y-1.5 rounded-xl border px-3 py-2.5 text-xs text-muted-foreground">
-            <p>{legal("copyright")}</p>
+            <p>{legal("copyright", { app: APP_NAME })}</p>
             <p>{legal("warranty")}</p>
             <p className="flex gap-4 pt-1">
               <a href={SOURCE_URL} target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline-offset-4 hover:underline">

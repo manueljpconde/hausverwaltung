@@ -16,6 +16,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { APP_VERSION_LABEL, APP_VERSION_FULL } from "@/lib/version";
+import { APP_NAME } from "@/lib/brand";
 
 export function AppSidebar({ logoUrl, superAdmin = false }: { logoUrl?: string; superAdmin?: boolean }) {
   const t = useTranslations();
@@ -26,9 +27,9 @@ export function AppSidebar({ logoUrl, superAdmin = false }: { logoUrl?: string; 
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-1.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={logoUrl ?? "/icon.png"} alt="HaVeWa" className="size-8 rounded-md object-contain" />
+          <img src={logoUrl ?? "/icon.png"} alt={APP_NAME} className="size-8 rounded-md object-contain" />
           <div className="grid leading-tight">
-            <span className="font-semibold">{t("app.name")}</span>
+            <span className="font-semibold">{APP_NAME}</span>
             <span className="text-xs text-muted-foreground">{t("app.tagline")}</span>
           </div>
         </div>

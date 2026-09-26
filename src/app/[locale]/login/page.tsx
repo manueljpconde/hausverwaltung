@@ -9,6 +9,7 @@ import { BackgroundVideo } from "@/components/background-video";
 import { LoginForm } from "@/components/login-form";
 import { oidcConfigFromEnv } from "@/lib/sso";
 import { APP_VERSION_LABEL, APP_VERSION_FULL, SOURCE_URL, LICENSE_URL } from "@/lib/version";
+import { APP_NAME } from "@/lib/brand";
 
 export default async function LoginPage() {
   if (await needsSetup()) redirect("/setup");
@@ -20,7 +21,7 @@ export default async function LoginPage() {
     orderBy: { createdAt: "asc" },
     select: { name: true, isDemo: true, logoKey: true },
   });
-  const tenantName = tenant?.name ?? t("app.name");
+  const tenantName = tenant?.name ?? APP_NAME;
   const isDemo = tenant?.isDemo ?? false;
   const sso = oidcConfigFromEnv();
   // Eigenes Admin-Logo, sonst Produkt-Logo
@@ -70,14 +71,14 @@ export default async function LoginPage() {
 
         <div className="flex items-center gap-2 text-xs text-white/70">
           <ShieldCheck className="size-4" />
-          © 2026 {t("app.name")} · DSGVO- &amp; GoBD-orientiert
+          © 2026 {APP_NAME} · DSGVO- &amp; GoBD-orientiert
         </div>
 
         {/* Produkt-Icon unten rechts im Video-Bereich */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/marketing/icon.png"
-          alt="HaVeWa"
+          alt={APP_NAME}
           className="pointer-events-none absolute bottom-6 right-6 h-20 w-auto object-contain opacity-90 drop-shadow-lg"
         />
       </div>

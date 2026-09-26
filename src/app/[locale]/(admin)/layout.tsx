@@ -16,6 +16,7 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
 import { SearchBox } from "@/components/search-box";
+import { APP_NAME } from "@/lib/brand";
 
 export default async function AdminLayout({
   children,
@@ -67,7 +68,7 @@ export default async function AdminLayout({
             </a>
           )}
           <div className="ml-auto flex items-center gap-1">
-            <InfoDrawer tenantName={tenant?.name ?? "HaVeWa"} />
+            <InfoDrawer tenantName={tenant?.name ?? APP_NAME} />
             <NotificationBell items={notifItems} unread={unread} />
             <LanguageSwitcher />
             <ThemeToggle />

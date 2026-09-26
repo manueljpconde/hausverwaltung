@@ -7,6 +7,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
 import { NotificationBell } from "@/components/notification-bell";
 import { InfoDrawer } from "@/components/info-drawer";
+import { APP_NAME } from "@/lib/brand";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
@@ -31,11 +32,11 @@ export default async function PortalLayout({ children }: { children: React.React
       <header className="flex h-14 items-center gap-2 border-b bg-background px-4">
         <Link href="/portal" className="flex items-center gap-2 font-semibold">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icon.png" alt="HaVeWa" className="size-7 rounded-md" />
-          HaVeWa
+          <img src="/icon.png" alt={APP_NAME} className="size-7 rounded-md" />
+          {APP_NAME}
         </Link>
         <div className="ml-auto flex items-center gap-1">
-          <InfoDrawer tenantName={tenant?.name ?? "HaVeWa"} />
+          <InfoDrawer tenantName={tenant?.name ?? APP_NAME} />
           <NotificationBell items={notifItems} unread={unread} />
           <LanguageSwitcher />
           <ThemeToggle />

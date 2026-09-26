@@ -6,13 +6,14 @@ import { routing } from "@/i18n/routing";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "../globals.css";
+import { APP_NAME } from "@/lib/brand";
 
 const sans = Inter({ variable: "--font-sans", subsets: ["latin"], display: "swap" });
 const heading = Space_Grotesk({ variable: "--font-heading", subsets: ["latin"], display: "swap" });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "HaVeWa — Hausverwaltung",
+  title: `${APP_NAME} — Hausverwaltung`,
   description: "Immobilienverwaltung für Miet- und WEG-Verwaltung",
 };
 

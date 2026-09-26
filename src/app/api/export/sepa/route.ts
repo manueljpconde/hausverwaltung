@@ -3,6 +3,7 @@ import { actingTenantId } from "@/lib/acting-tenant";
 import { prisma } from "@/lib/prisma";
 import { roleAllows } from "@/lib/rbac";
 import { toPain008, type SepaEntry } from "@/lib/adapters/sepa";
+import { APP_NAME, APP_SLUG } from "@/lib/brand";
 
 export async function GET() {
   const session = await auth();
@@ -41,16 +42,16 @@ export async function GET() {
         iban: m.iban,
         debtorName: `${m.person.firstName} ${m.person.lastName}`,
         amount: open,
-        reference: `Einzug ${tenant?.name ?? "HaVeWa"}`,
+        reference: `Einzug ${tenant?.name ?? APP_NAME}`,
       });
     }
   }
 
   const xml = toPain008(entries, {
-    creditorName: tenant?.name ?? "HaVeWa",
+    creditorName: tenant?.name ?? APP_NAME,
     creditorIban: "DE00000000000000000000",
     creditorId: "DE00ZZZ00000000000",
-    msgId: `HAVEWA-${Date.now()}`,
+    msgId: `${APP_SLUG.toUpperCase()}-${Date.now()}`,
     createdAt: new Date().toISOString(),
   });
 

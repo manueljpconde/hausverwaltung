@@ -1,20 +1,19 @@
 {
   "app": {
-    "name": "HaVeWa",
     "tagline": "Hausverwaltung"
   },
   "about": {
-    "title": "Über HaVeWa",
+    "title": "Über {app}",
     "tagline": "Haus- & WEG-Verwaltung",
     "beta": "Beta",
-    "betaNote": "HaVeWa befindet sich in der Beta-Testphase. Funktionen können sich ändern.",
+    "betaNote": "{app} befindet sich in der Beta-Testphase. Funktionen können sich ändern.",
     "version": "Version",
     "build": "Build",
     "tenant": "Mandant",
     "madeBy": "Entwickelt von"
   },
   "legal": {
-    "copyright": "© 2026 Florian Gilde (HaVeWa) · Änderungen © 2026 CRMware",
+    "copyright": "{app} basiert auf HaVeWa © 2026 Florian Gilde · Änderungen © 2026 CRMware",
     "warranty": "Freie Software unter der GNU Affero General Public License v3.0, ohne jegliche Gewährleistung.",
     "source": "Quellcode",
     "license": "Lizenz (AGPL-3.0)"
@@ -197,7 +196,7 @@
     "brandColor": "Theme-Farbe",
     "preview": "Vorschau",
     "submit": "Einrichtung abschließen",
-    "welcomeTitle": "Willkommen bei HaVeWa",
+    "welcomeTitle": "Willkommen bei {app}",
     "welcomeText": "In wenigen Schritten ist Ihre Hausverwaltung startklar. Sie können Schritte überspringen und später in den Einstellungen ergänzen.",
     "brandingText": "Wählen Sie eine Theme-Farbe für Ihre App — jederzeit änderbar.",
     "propertyText": "Optional: legen Sie direkt Ihr erstes Objekt an.",
