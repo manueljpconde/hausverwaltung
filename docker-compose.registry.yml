@@ -16,6 +16,9 @@ services:
       DATABASE_URL: "postgresql://havewa:${DB_PASSWORD}@db:5432/havewa?schema=public"
       AUTH_SECRET: "${AUTH_SECRET}"
       AUTH_TRUST_HOST: "true"
+      # Öffentliche URL: hinter dem Proxy sieht Auth.js sonst localhost:3000 und leitet
+      # z. B. nach dem Logout dorthin um (#10).
+      AUTH_URL: "https://${DOMAIN}"
       # Optionaler Bootstrap beim ersten Start (alle optional):
       SEED_DEMO: "${SEED_DEMO:-}"
       ADMIN_EMAIL: "${ADMIN_EMAIL:-}"
