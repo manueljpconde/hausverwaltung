@@ -12,9 +12,21 @@ export async function createTestTenant() {
   const tenantId = tenant.id;
   return {
     tenantId,
-    // TODO(#52 Task 1): Finanzdaten haben keine FK auf Tenant → dann explizit und in Abhängigkeitsreihenfolge löschen.
+    // Finanzdaten haben keine FK auf Tenant → explizit und in Abhängigkeitsreihenfolge löschen.
     async cleanup() {
-      await db.tenant.delete({ where: { id: tenantId } });
+      const where = { where: { tenantId } };
+      await db.$transaction([
+        db.paymentAllocation.deleteMany(where),
+        db.dunningNotice.deleteMany(where),
+        db.payment.deleteMany(where),
+        db.charge.deleteMany(where),
+        db.quotaDebtorSnapshot.deleteMany(where),
+        db.condominiumAssessmentLine.deleteMany(where),
+        db.condominiumAssessment.deleteMany(where),
+        db.areaAllocation.deleteMany(where),
+        db.lease.deleteMany(where),
+        db.tenant.delete({ where: { id: tenantId } }),
+      ]);
     },
   };
 }
