@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export type ActionState = { ok?: boolean; error?: string };
+export type ActionState = { ok?: boolean; error?: string; message?: string };
 
 const optionalStr = z
   .string()

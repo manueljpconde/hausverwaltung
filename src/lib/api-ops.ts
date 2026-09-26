@@ -213,6 +213,7 @@ export const OPERATIONS: Record<string, Op> = {
       const open = await openChargesForMatching(p.tenantId);
       let matched = 0;
       for (const e of entries) {
+        if (e.amount <= 0) continue; // Nullbetrag (z. B. Storno-Zeile) — nichts zu buchen
         const chargeId = e.direction === "EINGANG" ? matchOpenCharge(open, e.amount) : null;
         if (chargeId) matched++;
         await recordPayment({ tenantId: p.tenantId, accountId, chargeId, date: new Date(e.date), amount: e.amount, direction: e.direction, reference: e.reference });

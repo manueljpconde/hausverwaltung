@@ -132,8 +132,9 @@ export async function createPayment(_p: ActionState, fd: FormData): Promise<Acti
   // Überzahlung: gebucht, aber nur bis zum offenen Betrag zugeordnet — dem Nutzer sagen, was übrig bleibt.
   const rest = unappliedPart(r.data.amount, res.allocated, r.data.chargeId);
   if (rest) {
+    revalidatePath("/", "layout");
     const t = await getTranslations("finances");
-    return { ok: true, error: t("partiallyApplied", { applied: rest.applied.toFixed(2), unapplied: rest.unapplied.toFixed(2) }) };
+    return { ok: true, message: t("partiallyApplied", { applied: rest.applied.toFixed(2), unapplied: rest.unapplied.toFixed(2) }) };
   }
   return done();
 }
@@ -200,6 +201,7 @@ export async function importCamt(_p: ActionState, fd: FormData): Promise<ActionS
 
   let matched = 0;
   for (const e of entries) {
+    if (e.amount <= 0) continue; // Nullbetrag (z. B. Storno-Zeile) — nichts zu buchen
     const chargeId = e.direction === "EINGANG" ? matchOpenCharge(open, e.amount) : null;
     if (chargeId) matched++;
     await recordPayment({

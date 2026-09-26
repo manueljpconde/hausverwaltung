@@ -39,4 +39,15 @@ describe("Zahlungs-Schreiber (#52)", () => {
     expect(src).toMatch(/special === "payment"[\s\S]*recordPayment/);
     expect(src).toMatch(/deletePaymentWithAllocations/);
   });
+
+  it("camt-Import überspringt Nullbeträge vor dem Abgleich/Buchen (Fix-Runde 1)", () => {
+    for (const [f, loopMarker] of [
+      ["src/server/actions/finances.ts", /for \(const e of entries\) \{[\s\S]*?\n {2}\}/],
+      ["src/lib/api-ops.ts", /for \(const e of entries\) \{[\s\S]*?\n {6}\}/],
+    ] as const) {
+      const src = read(f);
+      const loop = src.match(loopMarker)?.[0] ?? "";
+      expect(loop, f).toMatch(/e\.amount <= 0/);
+    }
+  });
 });
