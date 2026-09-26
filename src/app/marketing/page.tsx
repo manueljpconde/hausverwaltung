@@ -151,7 +151,7 @@ export default async function MarketingPage() {
             <h2 id="fecho-titulo" className="text-2xl font-bold">
               {t("closing.title")}
             </h2>
-            <a href={LANDING_CTA_URL} className="cw-btn mt-6 bg-white hover:bg-[var(--cw-beige)]">
+            <a href={LANDING_CTA_URL} className="cw-btn cw-btn-light mt-6">
               {t("closing.cta")}
             </a>
           </div>

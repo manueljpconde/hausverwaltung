@@ -53,4 +53,12 @@ describe("/marketing (#33)", () => {
     expect(page).toContain('export const dynamic = "force-dynamic"');
     expect(page).toContain("metadataBase: process.env.AUTH_URL");
   });
+
+  it("Schluss-CTA hebt sich vom Teal-Band ab (heller Button)", () => {
+    const page = read("src/app/marketing/page.tsx");
+    const closing = page.slice(page.indexOf('aria-labelledby="fecho-titulo"'));
+    expect(closing).toMatch(/className="cw-btn cw-btn-light/);
+    const css = read("src/app/marketing/landing.css");
+    expect(css).toMatch(/\.landing \.cw-btn\.cw-btn-light\s*\{[^}]*background:\s*#ffffff/);
+  });
 });

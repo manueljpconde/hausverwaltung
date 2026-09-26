@@ -30,6 +30,9 @@ html:has(.landing) {
   transition: transform 0.2s ease, background 0.2s ease;
 }
 .landing .cw-btn:hover { background: var(--cw-teal-dark); transform: translateY(-2px); }
+/* Heller Button auf dem Teal-Band (Schluss-CTA). */
+.landing .cw-btn.cw-btn-light { background: #ffffff; }
+.landing .cw-btn.cw-btn-light:hover { background: var(--cw-beige); }
 .landing .cw-btn-outline {
   display: inline-block;
   border: 2px solid #ffffff;
