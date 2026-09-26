@@ -12,6 +12,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:crmware-demo": "vitest run src/lib/crmware-demo-seed.integration.test.ts",
     "db:up": "docker compose up -d",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",

@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import {
   CRMWARE_DEMO_ANCHOR,
-  CRMWARE_DEMO_PASSWORD,
   CRMWARE_DEMO_SCENARIOS,
+  assertDemoSeedAllowed,
   demoDate,
+  invalidPtNif,
+  isValidPtNif,
   validateScenarioDefinitions,
 } from "../../prisma/seed-crmware-demo";
 
@@ -78,11 +80,32 @@ describe("CrmWare Portugal demo seed (#46)", () => {
     ]);
   });
 
-  it("uses stable demo-only identities and a non-trivial shared password", () => {
-    expect(CRMWARE_DEMO_PASSWORD.length).toBeGreaterThanOrEqual(12);
+  it("uses stable demo-only identities", () => {
     for (const scenario of CRMWARE_DEMO_SCENARIOS) {
       expect(scenario.tenantName).toMatch(/^CrmWare Demo PT - /);
       expect(scenario.emailDomain).toMatch(/\.example$/);
+    }
+  });
+
+  it("requires an explicit local-only opt-in and an environment password", () => {
+    const allowed = {
+      ALLOW_DEMO_SEED: "1",
+      CRMWARE_DEMO_PASSWORD: "LocalOnly-Password-2026",
+      DATABASE_URL: "postgresql://havewa:havewa@localhost:5432/havewa",
+      NODE_ENV: "development",
+    } as const;
+    expect(assertDemoSeedAllowed(allowed)).toBe(allowed.CRMWARE_DEMO_PASSWORD);
+    expect(() => assertDemoSeedAllowed({ ...allowed, ALLOW_DEMO_SEED: undefined })).toThrow(/ALLOW_DEMO_SEED/);
+    expect(() => assertDemoSeedAllowed({ ...allowed, NODE_ENV: "production" })).toThrow(/produção/);
+    expect(() => assertDemoSeedAllowed({ ...allowed, DATABASE_URL: "postgresql://db.internal/havewa" })).toThrow(/local/);
+    expect(() => assertDemoSeedAllowed({ ...allowed, CRMWARE_DEMO_PASSWORD: "short" })).toThrow(/password/i);
+  });
+
+  it("generates deliberately invalid Portuguese NIF placeholders", () => {
+    for (let i = 0; i < 500; i++) {
+      const nif = invalidPtNif(2, i);
+      expect(nif).toMatch(/^2\d{8}$/);
+      expect(isValidPtNif(nif)).toBe(false);
     }
   });
 
@@ -100,6 +123,7 @@ describe("CrmWare Portugal demo seed (#46)", () => {
     const pkg = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8"));
     expect(pkg.scripts["db:seed:crmware"]).toBe("tsx prisma/seed-crmware-demo.ts");
     expect(pkg.scripts["db:validate:crmware"]).toBe("tsx prisma/seed-crmware-demo.ts --validate");
+    expect(pkg.scripts["test:crmware-demo"]).toBe("vitest run src/lib/crmware-demo-seed.integration.test.ts");
   });
 
   it("ships an evidence-based operator guide with explicit product limits", () => {
@@ -110,5 +134,14 @@ describe("CrmWare Portugal demo seed (#46)", () => {
     expect(guide).toContain("## Limitações confirmadas");
     expect(guide).toContain("não existe isolamento por portefólio de senhorio");
     expect(guide).toContain("npm run db:validate:crmware");
+  });
+
+  it("does not commit or print a shared demo password", () => {
+    const seed = readFileSync(new URL("../../prisma/seed-crmware-demo.ts", import.meta.url), "utf8");
+    const guide = readFileSync(new URL("../../docs/crmware-demo.md", import.meta.url), "utf8");
+    expect(seed).not.toContain("CrmWareDemo!2026");
+    expect(guide).not.toContain("CrmWareDemo!2026");
+    expect(seed).toContain('isDemo: false');
+    expect(seed).not.toContain('dateFormat: "en-GB"');
   });
 });
