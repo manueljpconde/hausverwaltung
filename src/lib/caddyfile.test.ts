@@ -20,3 +20,11 @@ describe("Caddy-Zugriffslog /marketing (#33)", () => {
     expect(caddy).toContain("roll_interval 24h");
   });
 });
+
+describe("HETZNER.md: Caddyfile-Update (#39)", () => {
+  it("lädt die neue Konfiguration per Neuerstellung des Caddy-Containers", () => {
+    const doc = readFileSync(new URL("../../docs/deployment/HETZNER.md", import.meta.url), "utf8");
+    expect(doc).toContain("docker compose -f docker-compose.registry.yml up -d --force-recreate --no-deps caddy");
+    expect(doc).not.toMatch(/up -d caddy`/);
+  });
+});

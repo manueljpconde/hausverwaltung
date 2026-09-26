@@ -138,4 +138,11 @@ Leads: count contact requests on crmware.pt with `referrer: https://realestate.c
 (target ≥ 5 in the 90 days after publication).
 
 The Caddyfile is not updated by `deploy/update.sh` (it only restarts the app): after a change,
-copy it to `/opt/havewa/Caddyfile` and run `docker compose -f docker-compose.registry.yml up -d caddy`.
+validate it, copy it to `/opt/havewa/Caddyfile`, then recreate the container — `up -d` alone keeps
+the old config (unchanged service; the single-file bind mount still points at the replaced file):
+
+```bash
+docker run --rm -e DOMAIN=realestate.crmware.pt -v "$PWD/Caddyfile:/etc/caddy/Caddyfile:ro" \
+  caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+docker compose -f docker-compose.registry.yml up -d --force-recreate --no-deps caddy
+```
