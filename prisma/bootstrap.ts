@@ -2,6 +2,7 @@ import { execSync } from "node:child_process";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { ensureDefaultAccounts } from "../src/lib/accounts";
+import { APP_NAME } from "../src/lib/brand";
 
 // Einmaliger Bootstrap beim Container-/Server-Start (idempotent).
 // Alle Env-Variablen optional:
@@ -42,7 +43,7 @@ async function main() {
   const email = process.env.ADMIN_EMAIL?.trim();
   const password = process.env.ADMIN_PASSWORD;
   if (email && password) {
-    const tenantName = process.env.TENANT_NAME?.trim() || "HaVeWa";
+    const tenantName = process.env.TENANT_NAME?.trim() || APP_NAME;
     const adminName = process.env.ADMIN_NAME?.trim() || "Admin";
     const tenant = await prisma.tenant.create({ data: { name: tenantName } });
     await prisma.user.create({

@@ -23,22 +23,27 @@ describe("Produktname aus einer Quelle (#18)", () => {
     for (const locale of ["de", "en"]) {
       const m = JSON.parse(read(`messages/${locale}.json`));
       expect(m.app.name).toBeUndefined();
-      for (const text of [m.about.title, m.about.betaNote, m.setup.welcomeTitle, m.legal.copyright]) {
+      for (const text of [m.about.title, m.about.betaNote, m.setup.welcomeTitle]) {
         expect(text).toContain("{app}");
       }
-      // Einzige erlaubte Nennung: das Originalwerk im AGPL-Hinweis.
+      // Einzige erlaubte Nennung: das Originalwerk im AGPL-Hinweis — fest, ohne {app},
+      // sonst stünde dort bei unverändertem Namen "HaVeWa basiert auf HaVeWa".
       const { copyright, ...legalRest } = m.legal;
-      expect(copyright).toContain("HaVeWa");
+      expect(copyright).toContain("Florian Gilde (HaVeWa)");
+      expect(copyright).not.toContain("{app}");
       expect(JSON.stringify({ ...m, legal: legalRest })).not.toContain("HaVeWa");
     }
   });
 
-  it("kein fester Produktname im Quellcode außerhalb von brand.ts", () => {
-    const files = (readdirSync(new URL("src/", root), { recursive: true }) as string[])
-      .filter((f) => /\.(ts|tsx)$/.test(f) && !/\.test\.tsx?$/.test(f) && f !== "lib/brand.ts");
+  it("kein fester Produktname im Quellcode (src/, prisma/) außerhalb von brand.ts", () => {
+    const list = (dir: string) =>
+      (readdirSync(new URL(`${dir}/`, root), { recursive: true }) as string[]).map((f) => `${dir}/${f}`);
+    const files = [...list("src"), ...list("prisma")].filter(
+      (f) => /\.(ts|tsx)$/.test(f) && !/\.test\.tsx?$/.test(f) && f !== "src/lib/brand.ts",
+    );
     const hits: string[] = [];
     for (const f of files) {
-      let code = stripComments(read(`src/${f}`));
+      let code = stripComments(read(f));
       for (const ok of ALLOWED) code = code.split(ok).join("");
       if (/havewa/i.test(code)) hits.push(f);
     }

@@ -13,7 +13,7 @@
     "madeBy": "Built by"
   },
   "legal": {
-    "copyright": "{app} is based on HaVeWa © 2026 Florian Gilde · Modifications © 2026 CRMware",
+    "copyright": "© 2026 Florian Gilde (HaVeWa) · Modifications © 2026 CRMware",
     "warranty": "Free software under the GNU Affero General Public License v3.0, without any warranty.",
     "source": "Source code",
     "license": "Licence (AGPL-3.0)"

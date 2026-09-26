@@ -81,7 +81,7 @@ export function InfoDrawer({ tenantName }: { tenantName: string }) {
 
           {/* Rechtliche Hinweise (AGPL-3.0 §5d, §13) */}
           <div className="space-y-1.5 rounded-xl border px-3 py-2.5 text-xs text-muted-foreground">
-            <p>{legal("copyright", { app: APP_NAME })}</p>
+            <p>{legal("copyright")}</p>
             <p>{legal("warranty")}</p>
             <p className="flex gap-4 pt-1">
               <a href={SOURCE_URL} target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline-offset-4 hover:underline">
