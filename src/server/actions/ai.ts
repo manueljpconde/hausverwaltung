@@ -90,7 +90,9 @@ export async function askAssistantAction(_prev: AssistantState, fd: FormData): P
     const answer = await askAssistant(JSON.stringify(ctx), question, locale, aiCfg);
     return { answer, configured: true };
   } catch (e) {
-    return { error: e instanceof Error ? e.message : t("failed"), configured: true };
+    // Anbieterfehler nur serverseitig protokollieren; der Nutzer bekommt die übersetzte Meldung.
+    console.error("[ai] request failed:", e instanceof Error ? e.message : e);
+    return { error: t("failed"), configured: true };
   }
 }
 
@@ -139,6 +141,7 @@ export async function explainStatement(_p: AssistantState, fd: FormData): Promis
     );
     return { answer, configured: true };
   } catch (e) {
-    return { error: e instanceof Error ? e.message : t("failed"), configured: true };
+    console.error("[ai] request failed:", e instanceof Error ? e.message : e);
+    return { error: t("failed"), configured: true };
   }
 }
