@@ -121,3 +121,21 @@ it reads the rest of the script from stdin. Copy the script to the server and ru
 8. Install the backup cron line (see Backups).
 
 Tear down: `hcloud server delete havewa` (billed hourly until deleted), then remove the DNS record.
+
+## Landing page visits (#33)
+
+Caddy logs only requests to `/marketing` to `/data/access-marketing.log` (volume `caddy-data`) —
+without IP address, headers or cookies; rotated files are kept 90 days. Bots cannot be filtered
+out (no user agent), so the count is an upper bound. Requests per day:
+
+```bash
+ssh -i ~/.ssh/havewa_hetzner_ed25519 root@2.28.113.150 \
+  'docker exec havewa-caddy sh -c "cat /data/access-marketing.log; zcat /data/access-marketing-*.log.gz 2>/dev/null"' \
+  | jq -r '.ts | floor | strftime("%Y-%m-%d")' | sort | uniq -c
+```
+
+Leads: count contact requests on crmware.pt with `referrer: https://realestate.crmware.pt`
+(target ≥ 5 in the 90 days after publication).
+
+The Caddyfile is not updated by `deploy/update.sh` (it only restarts the app): after a change,
+copy it to `/opt/havewa/Caddyfile` and run `docker compose -f docker-compose.registry.yml up -d caddy`.
