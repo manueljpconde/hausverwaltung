@@ -7,7 +7,7 @@ import { routing } from "@/i18n/routing";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "../globals.css";
-import { APP_NAME } from "@/lib/brand";
+import { APP_NAME, BRAND_ICON_URL } from "@/lib/brand";
 
 const sans = Inter({ variable: "--font-sans", subsets: ["latin"], display: "swap" });
 const heading = Space_Grotesk({ variable: "--font-heading", subsets: ["latin"], display: "swap" });
@@ -17,7 +17,11 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) return {};
   const t = await getTranslations({ locale, namespace: "app" });
-  return { title: `${APP_NAME} — ${t("tagline")}`, description: t("description") };
+  return {
+    title: `${APP_NAME} — ${t("tagline")}`,
+    description: t("description"),
+    icons: { icon: BRAND_ICON_URL, apple: BRAND_ICON_URL },
+  };
 }
 
 export function generateStaticParams() {

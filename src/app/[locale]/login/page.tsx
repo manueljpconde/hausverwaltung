@@ -9,7 +9,8 @@ import { BackgroundVideo } from "@/components/background-video";
 import { LoginForm } from "@/components/login-form";
 import { oidcConfigFromEnv } from "@/lib/sso";
 import { APP_VERSION_LABEL, APP_VERSION_FULL, SOURCE_URL, LICENSE_URL } from "@/lib/version";
-import { APP_NAME } from "@/lib/brand";
+import { APP_NAME, BRAND_LOGO_URL, BRAND_ICON_URL } from "@/lib/brand";
+import { Link } from "@/i18n/navigation";
 
 export default async function LoginPage() {
   if (await needsSetup()) redirect("/setup");
@@ -25,7 +26,7 @@ export default async function LoginPage() {
   const isDemo = tenant?.isDemo ?? false;
   const sso = oidcConfigFromEnv();
   // Eigenes Admin-Logo, sonst Produkt-Logo
-  const logoUrl = tenant?.logoKey ? "/api/logo" : "/logo.png";
+  const logoUrl = tenant?.logoKey ? "/api/logo" : BRAND_LOGO_URL;
   const videos = await listBackgroundVideos();
 
   const points = [t("login.point1"), t("login.point2"), t("login.point3")];
@@ -77,7 +78,7 @@ export default async function LoginPage() {
         {/* Produkt-Icon unten rechts im Video-Bereich */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/marketing/icon.png"
+          src={BRAND_ICON_URL}
           alt={APP_NAME}
           className="pointer-events-none absolute bottom-6 right-6 h-20 w-auto object-contain opacity-90 drop-shadow-lg"
         />
@@ -97,7 +98,7 @@ export default async function LoginPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={logoUrl} alt={tenantName} className="mx-auto h-44 w-auto object-contain" />
             <h1 className="text-2xl font-semibold tracking-tight">
-              {t("login.welcomeTo")} {tenantName}
+              {t("login.greeting")}
             </h1>
             <p className="text-sm text-muted-foreground">{t("login.subtitle")}</p>
           </div>
@@ -135,6 +136,10 @@ export default async function LoginPage() {
               <a href={LICENSE_URL} target="_blank" rel="noopener noreferrer" className="underline-offset-4 hover:underline">
                 {t("legal.license")}
               </a>
+              {" · "}
+              <Link href="/legal" className="underline-offset-4 hover:underline">
+                {t("legal.notice")}
+              </Link>
             </p>
           </div>
         </div>

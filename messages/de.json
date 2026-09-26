@@ -7,17 +7,17 @@
     "title": "Über {app}",
     "tagline": "Haus- & WEG-Verwaltung",
     "beta": "Beta",
-    "betaNote": "{app} befindet sich in der Beta-Testphase. Funktionen können sich ändern.",
+    "betaNote": "Diese Anwendung befindet sich in der Beta-Testphase. Funktionen können sich ändern.",
     "version": "Version",
     "build": "Build",
-    "tenant": "Mandant",
-    "madeBy": "Entwickelt von"
+    "tenant": "Mandant"
   },
   "legal": {
-    "copyright": "© 2026 Florian Gilde (HaVeWa) · Änderungen © 2026 CRMware",
+    "copyright": "© 2026 Florian Gilde (HaVeWa) · Änderungen © 2026 CrmWare",
     "warranty": "Freie Software unter der GNU Affero General Public License v3.0, ohne jegliche Gewährleistung.",
     "source": "Quellcode",
-    "license": "Lizenz (AGPL-3.0)"
+    "license": "Lizenz (AGPL-3.0)",
+    "notice": "Rechtliche Hinweise"
   },
   "common": {
     "search": "Suchen",
@@ -246,7 +246,7 @@
   "login": {
     "title": "Anmelden",
     "subtitle": "Bitte melden Sie sich an, um fortzufahren.",
-    "welcomeTo": "Willkommen bei",
+    "greeting": "Willkommen",
     "welcome": "Willkommen zurück",
     "loadingApp": "Anwendung wird geladen…",
     "email": "E-Mail",

@@ -4,20 +4,20 @@
     "description": "Gestão imobiliária para arrendamentos e condomínios"
   },
   "about": {
-    "title": "Acerca do {app}",
+    "title": "Sobre {app}",
     "tagline": "Gestão de imóveis e condomínios",
     "beta": "Beta",
-    "betaNote": "O {app} está em fase de testes beta. As funcionalidades podem mudar.",
+    "betaNote": "Esta aplicação está em fase de testes beta. As funcionalidades podem mudar.",
     "version": "Versão",
     "build": "Build",
-    "tenant": "Organização",
-    "madeBy": "Desenvolvido por"
+    "tenant": "Organização"
   },
   "legal": {
-    "copyright": "© 2026 Florian Gilde (HaVeWa) · Alterações © 2026 CRMware",
+    "copyright": "© 2026 Florian Gilde (HaVeWa) · Alterações © 2026 CrmWare",
     "warranty": "Software livre sob a GNU Affero General Public License v3.0, sem qualquer garantia.",
     "source": "Código-fonte",
-    "license": "Licença (AGPL-3.0)"
+    "license": "Licença (AGPL-3.0)",
+    "notice": "Aviso legal"
   },
   "common": {
     "search": "Pesquisar",
@@ -246,7 +246,7 @@
   "login": {
     "title": "Iniciar sessão",
     "subtitle": "Inicie sessão para continuar.",
-    "welcomeTo": "Bem-vindo a",
+    "greeting": "Bem-vindo",
     "welcome": "Bem-vindo de volta",
     "loadingApp": "A carregar a aplicação…",
     "email": "Email",

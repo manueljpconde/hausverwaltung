@@ -41,7 +41,8 @@ describe("listBackgroundVideos (#22)", () => {
     }
   });
 
-  it("Standard: echter Ordner mit dem aktuellen Video als default", async () => {
-    expect(await listBackgroundVideos()).toEqual(["/videos/default/estate-1.mp4"]);
+  it("Standard: echter Ordner — Markenvideo für APP_SLUG, default bleibt erhalten", async () => {
+    expect(await listBackgroundVideos()).toEqual(["/videos/crmware/intro-vision-imo-crmware.mp4"]);
+    expect(await listBackgroundVideos({ slug: "unbekannt" })).toEqual(["/videos/default/estate-1.mp4"]);
   });
 });

@@ -3,7 +3,7 @@
 _🇬🇧 English · 🇩🇪 [Deutsch](README.de.md)_
 
 > **Modified version.** This is a fork of [HaVeWa](https://github.com/fgilde/hausverwaltung) by Florian Gilde,
-> modified by CRMware since September 2026. Licensed under the [GNU AGPL v3.0](LICENSE) (see [LICENSING.md](LICENSING.md)).
+> modified by CrmWare since September 2026. Licensed under the [GNU AGPL v3.0](LICENSE) (see [LICENSING.md](LICENSING.md)).
 
 [![QuickRun](https://quickrun.org/badge.svg)](https://quickrun.org/run?repo=fgilde/hausverwaltung)
 
