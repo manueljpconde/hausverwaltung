@@ -19,7 +19,7 @@ describeDb("Mandant löschen (#52)", () => {
     await db!.dunningNotice.create({ data: { tenantId, chargeId: charge.id, level: 1 } });
     // vollständige Quota-Kette mit Zahlung
     const person = await db!.person.create({ data: { tenantId, firstName: "Ana", lastName: "Teste" } });
-    const assessment = await db!.condominiumAssessment.create({ data: { tenantId, propertyId: property.id, period: d, kind: "ORDINARY", method: "PERMILLAGE", dueDate: d, asOf: d, totalCents: 5000 } });
+    const assessment = await db!.condominiumAssessment.create({ data: { tenantId, propertyId: property.id, period: d, kind: "ORDINARY", method: "PERMILLAGE", dueDate: d, asOf: d, totalCents: 5000, requestKey: "k" } });
     const line = await db!.condominiumAssessmentLine.create({ data: { tenantId, assessmentId: assessment.id, unitId: unit.id, amountCents: 5000 } });
     const snap = await db!.quotaDebtorSnapshot.create({ data: { tenantId, lineId: line.id, personId: person.id, shareSnapshot: 1000, amountCents: 5000 } });
     const quota = await db!.charge.create({ data: { tenantId, quotaDebtorSnapshotId: snap.id, type: "HAUSGELD", period: d, dueDate: d, amount: 50 } });

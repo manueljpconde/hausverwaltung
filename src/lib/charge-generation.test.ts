@@ -45,7 +45,7 @@ describeDb("generateMonthlyCharges (#52)", () => {
 
   it("eine stornierte Miete blockiert die Neuerzeugung nicht", async () => {
     await generateMonthlyCharges(t.tenantId, "2026-09", db!);
-    await db!.charge.updateMany({ where: { tenantId: t.tenantId, leaseId }, data: { status: "CANCELLED" } });
+    await db!.charge.updateMany({ where: { tenantId: t.tenantId, leaseId }, data: { status: "CANCELLED", cancelledAt: new Date(), cancelReason: "Testabbruch" } });
     expect(await generateMonthlyCharges(t.tenantId, "2026-09", db!)).toMatchObject({ created: 1 });
   });
 

@@ -561,6 +561,9 @@ model Charge {
   dueDate     DateTime
   amount      Decimal        @db.Decimal(10, 2)
   description String?
+  // #52 R2: gesetzt genau dann, wenn status = CANCELLED (CHECK in SQL)
+  cancelledAt DateTime?
+  cancelReason String?
   allocations PaymentAllocation[]
   dunnings    DunningNotice[]
   createdAt   DateTime       @default(now())
@@ -846,7 +849,9 @@ model Resolution {
   votesNo       Int              @default(0)
   votesAbstain  Int              @default(0)
   createdAt     DateTime         @default(now())
+  assessments   CondominiumAssessment[]
 
+  @@unique([id, tenantId])
   @@index([tenantId])
   @@index([propertyId])
 }
@@ -1128,6 +1133,10 @@ model CondominiumAssessment {
   asOf        DateTime
   totalCents  Int
   status      AssessmentStatus @default(ISSUED)
+  description String?
+  resolutionId String?
+  resolution   Resolution?     @relation(fields: [resolutionId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  requestKey  String // kanonische Anfrage-Identität (Idempotenz)
   lines       CondominiumAssessmentLine[]
   createdAt   DateTime         @default(now())
 

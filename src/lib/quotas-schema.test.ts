@@ -55,7 +55,7 @@ describeDb("Schema-Garantien (#52)", () => {
   it("Miete: eine ISSUED je Vertrag/Monat; CANCELLED blockiert nicht", async () => {
     const first = await db!.charge.create({ data: rent() });
     await expect(db!.charge.create({ data: rent() })).rejects.toThrow(uniq("leaseId", "period"));
-    await db!.charge.update({ where: { id: first.id }, data: { status: "CANCELLED" } });
+    await db!.charge.update({ where: { id: first.id }, data: { status: "CANCELLED", cancelledAt: new Date(), cancelReason: "Testabbruch" } });
     await expect(db!.charge.create({ data: rent() })).resolves.toBeTruthy();
   });
 
@@ -68,12 +68,12 @@ describeDb("Schema-Garantien (#52)", () => {
     const area = { tenantId: t.tenantId, areaAllocationId: areaId, type: "MIETE" as const, period: month, dueDate: month, amount: 50 };
     const first = await db!.charge.create({ data: area });
     await expect(db!.charge.create({ data: area })).rejects.toThrow(uniq("areaAllocationId", "period"));
-    await db!.charge.update({ where: { id: first.id }, data: { status: "CANCELLED" } });
+    await db!.charge.update({ where: { id: first.id }, data: { status: "CANCELLED", cancelledAt: new Date(), cancelReason: "Testabbruch" } });
     await expect(db!.charge.create({ data: area })).resolves.toBeTruthy();
   });
 
   it("Quota-Kette: je Snapshot höchstens eine ISSUED-Sollstellung, je Objekt/Periode/Art ein ISSUED-Assessment", async () => {
-    const a = { tenantId: t.tenantId, propertyId, period: month, kind: "ORDINARY" as const, method: "PERMILLAGE" as const, dueDate: month, asOf: month, totalCents: 10000 };
+    const a = { tenantId: t.tenantId, propertyId, period: month, kind: "ORDINARY" as const, method: "PERMILLAGE" as const, dueDate: month, asOf: month, totalCents: 10000, requestKey: "k" };
     const assessment = await db!.condominiumAssessment.create({ data: a });
     await expect(db!.condominiumAssessment.create({ data: a })).rejects.toThrow(uniq("tenantId", "propertyId", "period", "kind"));
     const line = await db!.condominiumAssessmentLine.create({ data: { tenantId: t.tenantId, assessmentId: assessment.id, unitId, amountCents: 10000 } });
@@ -81,7 +81,7 @@ describeDb("Schema-Garantien (#52)", () => {
     const q = { tenantId: t.tenantId, quotaDebtorSnapshotId: snap.id, type: "HAUSGELD" as const, period: month, dueDate: month, amount: 100 };
     const first = await db!.charge.create({ data: q });
     await expect(db!.charge.create({ data: q })).rejects.toThrow(uniq("quotaDebtorSnapshotId"));
-    await db!.charge.update({ where: { id: first.id }, data: { status: "CANCELLED" } });
+    await db!.charge.update({ where: { id: first.id }, data: { status: "CANCELLED", cancelledAt: new Date(), cancelReason: "Testabbruch" } });
     await expect(db!.charge.create({ data: q })).resolves.toBeTruthy();
   });
 
@@ -104,7 +104,7 @@ describeDb("Schema-Garantien (#52)", () => {
       const d = { tenantId: t.tenantId, type: "MIETE" as const, period: month, dueDate: month, amount: 1 };
       await expect(db!.charge.create({ data: { ...d, leaseId: b.leaseId } })).rejects.toThrow(/Charge_leaseId_tenantId_fkey/);
       await expect(db!.charge.create({ data: { ...d, areaAllocationId: b.areaId } })).rejects.toThrow(/Charge_areaAllocationId_tenantId_fkey/);
-      const a = { tenantId: t.tenantId, period: month, kind: "ORDINARY" as const, method: "PERMILLAGE" as const, dueDate: month, asOf: month, totalCents: 100 };
+      const a = { tenantId: t.tenantId, period: month, kind: "ORDINARY" as const, method: "PERMILLAGE" as const, dueDate: month, asOf: month, totalCents: 100, requestKey: "k" };
       await expect(db!.condominiumAssessment.create({ data: { ...a, propertyId: b.propertyId } })).rejects.toThrow(/CondominiumAssessment_propertyId_tenantId_fkey/);
       const own = await db!.condominiumAssessment.create({ data: { ...a, propertyId } });
       await expect(db!.condominiumAssessmentLine.create({ data: { tenantId: t.tenantId, assessmentId: own.id, unitId: b.unitId, amountCents: 100 } })).rejects.toThrow(/CondominiumAssessmentLine_unitId_tenantId_fkey/);
@@ -154,7 +154,7 @@ describeDb("Schema-Garantien (#52)", () => {
     const p2 = await db!.property.create({ data: { tenantId: t.tenantId, name: "P2", street: "S", zip: "1000-001", city: "Lisboa" } });
     const b2 = await db!.building.create({ data: { tenantId: t.tenantId, propertyId: p2.id, name: "B2" } });
     const u2 = await db!.unit.create({ data: { tenantId: t.tenantId, buildingId: b2.id, label: "Z", area: 40 } });
-    const assessment = await db!.condominiumAssessment.create({ data: { tenantId: t.tenantId, propertyId, period: month, kind: "ORDINARY", method: "PERMILLAGE", dueDate: month, asOf: month, totalCents: 100 } });
+    const assessment = await db!.condominiumAssessment.create({ data: { tenantId: t.tenantId, propertyId, period: month, kind: "ORDINARY", method: "PERMILLAGE", dueDate: month, asOf: month, totalCents: 100, requestKey: "k" } });
     const line = { tenantId: t.tenantId, assessmentId: assessment.id, amountCents: 100 };
     await expect(db!.condominiumAssessmentLine.create({ data: { ...line, unitId: u2.id } })).rejects.toThrow(/assessment line unit not in assessment property/);
     const ok = await db!.condominiumAssessmentLine.create({ data: { ...line, unitId } });
@@ -165,7 +165,7 @@ describeDb("Schema-Garantien (#52)", () => {
     const { buildingId: b1 } = await db!.unit.findUniqueOrThrow({ where: { id: unitId } });
     const p2 = await db!.property.create({ data: { tenantId: t.tenantId, name: "P2", street: "S", zip: "1000-001", city: "Lisboa" } });
     const b2 = await db!.building.create({ data: { tenantId: t.tenantId, propertyId: p2.id, name: "B2" } });
-    const assessment = await db!.condominiumAssessment.create({ data: { tenantId: t.tenantId, propertyId, period: month, kind: "ORDINARY", method: "PERMILLAGE", dueDate: month, asOf: month, totalCents: 100 } });
+    const assessment = await db!.condominiumAssessment.create({ data: { tenantId: t.tenantId, propertyId, period: month, kind: "ORDINARY", method: "PERMILLAGE", dueDate: month, asOf: month, totalCents: 100, requestKey: "k" } });
     await db!.condominiumAssessmentLine.create({ data: { tenantId: t.tenantId, assessmentId: assessment.id, unitId, amountCents: 100 } });
     const msg = /assessment line unit not in assessment property/;
     await expect(db!.unit.update({ where: { id: unitId }, data: { buildingId: b2.id } })).rejects.toThrow(msg);
@@ -266,7 +266,7 @@ describeDb("Quota-Zeile/Objekt-Invariante unter Nebenläufigkeit (#52)", () => {
     const p2 = await db!.property.create({ data: { tenantId: t.tenantId, name: "P2", street: "S", zip: "1000-001", city: "Lisboa" } });
     const b2 = await db!.building.create({ data: { tenantId: t.tenantId, propertyId: p2.id, name: "B2" } });
     const b1b = await db!.building.create({ data: { tenantId: t.tenantId, propertyId: base.propertyId, name: "B1b" } });
-    const a = await db!.condominiumAssessment.create({ data: { tenantId: t.tenantId, propertyId: base.propertyId, period: month, kind: "ORDINARY", method: "PERMILLAGE", dueDate: month, asOf: month, totalCents: 100 } });
+    const a = await db!.condominiumAssessment.create({ data: { tenantId: t.tenantId, propertyId: base.propertyId, period: month, kind: "ORDINARY", method: "PERMILLAGE", dueDate: month, asOf: month, totalCents: 100, requestKey: "k" } });
     f = { ...base, buildingId, assessmentId: a.id, p2: p2.id, b2: b2.id, b1b: b1b.id };
   });
   afterEach(async () => {
@@ -344,6 +344,7 @@ describeDb("Migration #52 bricht bei vorhandenen Finanzdaten ab", () => {
     try {
       cpSync("prisma", dir, { recursive: true });
       rmSync(path.join(dir, "migrations", "20260927100000_quotas_foundation"), { recursive: true });
+      rmSync(path.join(dir, "migrations", "20260928100000_quotas_domain"), { recursive: true });
       const run = (schemaDir: string) =>
         spawnSync("npx", ["prisma", "migrate", "deploy", "--schema", path.join(schemaDir, "schema.prisma")], {
           env: { ...process.env, DATABASE_URL: url }, encoding: "utf8",

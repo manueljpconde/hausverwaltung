@@ -53,7 +53,7 @@ describeDb("recordPayment (#52)", () => {
     } finally {
       await other.cleanup();
     }
-    await db!.charge.update({ where: { id: chargeId }, data: { status: "CANCELLED" } });
+    await db!.charge.update({ where: { id: chargeId }, data: { status: "CANCELLED", cancelledAt: new Date(), cancelReason: "Testabbruch" } });
     await expect(pay(10)).rejects.toBeInstanceOf(PaymentError);
   });
 

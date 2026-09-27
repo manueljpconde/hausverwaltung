@@ -24,6 +24,11 @@ export async function createTestTenant() {
         db.quotaDebtorSnapshot.deleteMany(where),
         db.condominiumAssessmentLine.deleteMany(where),
         db.condominiumAssessment.deleteMany(where),
+        // Resolution/EconomicPlan erst nach Assessment (resolutionId-FK, Plan-Sperr-Trigger); Owner/AuditLog vor dem Tenant.
+        db.resolution.deleteMany(where),
+        db.economicPlan.deleteMany(where),
+        db.owner.deleteMany(where),
+        db.auditLog.deleteMany(where),
         db.areaAllocation.deleteMany(where),
         db.lease.deleteMany(where),
         db.tenant.delete({ where: { id: tenantId } }),
