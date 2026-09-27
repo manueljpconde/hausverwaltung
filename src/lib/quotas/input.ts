@@ -33,6 +33,15 @@ export const refundInputSchema = z.strictObject({
   reason: reasonSchema,
 });
 
+// quotaStatement: genau eines von unitId/personId; from/to als Monat (YYYY-MM), from ≤ to.
+export const statementQuerySchema = z.strictObject({
+  propertyId: id, unitId: id.optional(), personId: id.optional(), from: month.optional(), to: month.optional(),
+}).superRefine((v, ctx) => {
+  if (!!v.unitId === !!v.personId) ctx.addIssue({ code: "custom", message: "unitId xor personId" });
+  if (v.from && v.to && v.from > v.to) ctx.addIssue({ code: "custom", message: "from > to" });
+});
+export type StatementQuery = z.input<typeof statementQuerySchema>;
+
 export function parseOrThrow<T>(schema: z.ZodType<T>, value: unknown): T {
   const r = schema.safeParse(value);
   if (!r.success) throw new QuotaError("INVALID_INPUT", undefined, r.error.issues);
