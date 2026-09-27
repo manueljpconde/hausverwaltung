@@ -160,6 +160,26 @@ describeDb("Schema-Garantien (#52)", () => {
     await expect(db!.condominiumAssessmentLine.update({ where: { id: ok.id }, data: { unitId: u2.id } })).rejects.toThrow(/assessment line unit not in assessment property/);
   });
 
+  it("Quota-Zeile: Einheit, Gebäude oder Assessment lassen sich nicht nachträglich in ein anderes Objekt verschieben", async () => {
+    const { buildingId: b1 } = await db!.unit.findUniqueOrThrow({ where: { id: unitId } });
+    const p2 = await db!.property.create({ data: { tenantId: t.tenantId, name: "P2", street: "S", zip: "1000-001", city: "Lisboa" } });
+    const b2 = await db!.building.create({ data: { tenantId: t.tenantId, propertyId: p2.id, name: "B2" } });
+    const assessment = await db!.condominiumAssessment.create({ data: { tenantId: t.tenantId, propertyId, period: month, kind: "ORDINARY", method: "PERMILLAGE", dueDate: month, asOf: month, totalCents: 100 } });
+    await db!.condominiumAssessmentLine.create({ data: { tenantId: t.tenantId, assessmentId: assessment.id, unitId, amountCents: 100 } });
+    const msg = /assessment line unit not in assessment property/;
+    await expect(db!.unit.update({ where: { id: unitId }, data: { buildingId: b2.id } })).rejects.toThrow(msg);
+    await expect(db!.building.update({ where: { id: b1 }, data: { propertyId: p2.id } })).rejects.toThrow(msg);
+    await expect(db!.condominiumAssessment.update({ where: { id: assessment.id }, data: { propertyId: p2.id } })).rejects.toThrow(msg);
+  });
+
+  it("Einheiten und Gebäude ohne Quota-Zeilen bleiben verschiebbar", async () => {
+    const { buildingId: b1 } = await db!.unit.findUniqueOrThrow({ where: { id: unitId } });
+    const p2 = await db!.property.create({ data: { tenantId: t.tenantId, name: "P2", street: "S", zip: "1000-001", city: "Lisboa" } });
+    const b2 = await db!.building.create({ data: { tenantId: t.tenantId, propertyId: p2.id, name: "B2" } });
+    await expect(db!.unit.update({ where: { id: unitId }, data: { buildingId: b2.id } })).resolves.toBeTruthy();
+    await expect(db!.building.update({ where: { id: b1 }, data: { propertyId: p2.id } })).resolves.toBeTruthy();
+  });
+
   it("neuer Eigentümer ohne Angabe ist CONFIRMED und braucht deshalb validFrom (DB-Default)", async () => {
     await expect(db!.owner.create({ data: { tenantId: t.tenantId, unitId, personId, share: 1000 } })).rejects.toThrow(/owner_confirmed_needs_valid_from/);
   });

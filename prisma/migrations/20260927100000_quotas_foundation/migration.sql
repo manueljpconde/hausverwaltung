@@ -167,3 +167,49 @@ BEGIN
 END $$ LANGUAGE plpgsql;
 CREATE TRIGGER assessment_line_unit_in_property BEFORE INSERT OR UPDATE ON "CondominiumAssessmentLine"
   FOR EACH ROW EXECUTE FUNCTION assessment_line_unit_in_property();
+
+-- Dieselbe Invariante bei nachträglichen Verschiebungen (Einheit, Gebäude, Assessment); ohne Quota-Zeilen frei.
+CREATE FUNCTION unit_move_keeps_assessment_lines() RETURNS trigger AS $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM "CondominiumAssessmentLine" l
+    JOIN "CondominiumAssessment" a ON a.id = l."assessmentId"
+    WHERE l."unitId" = NEW.id
+      AND a."propertyId" IS DISTINCT FROM (SELECT b."propertyId" FROM "Building" b WHERE b.id = NEW."buildingId")
+  ) THEN
+    RAISE EXCEPTION 'assessment line unit not in assessment property';
+  END IF;
+  RETURN NEW;
+END $$ LANGUAGE plpgsql;
+CREATE TRIGGER unit_move_keeps_assessment_lines BEFORE UPDATE OF "buildingId" ON "Unit"
+  FOR EACH ROW EXECUTE FUNCTION unit_move_keeps_assessment_lines();
+
+CREATE FUNCTION building_move_keeps_assessment_lines() RETURNS trigger AS $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM "Unit" u
+    JOIN "CondominiumAssessmentLine" l ON l."unitId" = u.id
+    JOIN "CondominiumAssessment" a ON a.id = l."assessmentId"
+    WHERE u."buildingId" = NEW.id AND a."propertyId" IS DISTINCT FROM NEW."propertyId"
+  ) THEN
+    RAISE EXCEPTION 'assessment line unit not in assessment property';
+  END IF;
+  RETURN NEW;
+END $$ LANGUAGE plpgsql;
+CREATE TRIGGER building_move_keeps_assessment_lines BEFORE UPDATE OF "propertyId" ON "Building"
+  FOR EACH ROW EXECUTE FUNCTION building_move_keeps_assessment_lines();
+
+CREATE FUNCTION assessment_move_keeps_lines() RETURNS trigger AS $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM "CondominiumAssessmentLine" l
+    JOIN "Unit" u ON u.id = l."unitId"
+    JOIN "Building" b ON b.id = u."buildingId"
+    WHERE l."assessmentId" = NEW.id AND b."propertyId" IS DISTINCT FROM NEW."propertyId"
+  ) THEN
+    RAISE EXCEPTION 'assessment line unit not in assessment property';
+  END IF;
+  RETURN NEW;
+END $$ LANGUAGE plpgsql;
+CREATE TRIGGER assessment_move_keeps_lines BEFORE UPDATE OF "propertyId" ON "CondominiumAssessment"
+  FOR EACH ROW EXECUTE FUNCTION assessment_move_keeps_lines();
