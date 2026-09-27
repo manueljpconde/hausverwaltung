@@ -91,6 +91,14 @@ describeDb("recordPayment (#52)", () => {
     expect(await db!.paymentAllocation.count({ where: { tenantId: t.tenantId } })).toBe(2);
   });
 
+  it("Löschen ist trotz Fließkomma-Rundung erlaubt, wenn das Ergebnis gültig bleibt", async () => {
+    await pay(0.1);
+    const b = await pay(0.2);
+    await pay(0.1, { direction: "AUSGANG" });
+    expect(await deletePaymentWithAllocations(t.tenantId, b.paymentId, db!)).toBe(1);
+    expect(await db!.paymentAllocation.count({ where: { tenantId: t.tenantId } })).toBe(2);
+  });
+
   it("Löschen der Rückzahlung selbst ist erlaubt", async () => {
     await pay(200);
     const refund = await pay(150, { direction: "AUSGANG" });

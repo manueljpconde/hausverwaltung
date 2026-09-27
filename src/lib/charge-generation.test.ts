@@ -15,14 +15,16 @@ describe("isUniqueViolation (#52)", () => {
 let t: Awaited<ReturnType<typeof createTestTenant>>;
 let leaseId: string;
 let areaId: string;
+let buildingId: string;
 
 describeDb("generateMonthlyCharges (#52)", () => {
   beforeEach(async () => {
     t = await createTestTenant();
-    // #52: generateMonthlyCharges keeps the original generateAreaCharges scoping
-    // (only properties with areaModel: true) — see task-5-report.md "filter comparison".
+    // #52: generateMonthlyCharges übernimmt den Filter des bisherigen generateAreaCharges
+    // (nur Objekte mit areaModel: true).
     const property = await db!.property.create({ data: { tenantId: t.tenantId, name: "P", street: "S", zip: "1", city: "L", areaModel: true } });
     const building = await db!.building.create({ data: { tenantId: t.tenantId, propertyId: property.id, name: "B" } });
+    buildingId = building.id;
     const unit = await db!.unit.create({ data: { tenantId: t.tenantId, buildingId: building.id, label: "A", area: 50 } });
     leaseId = (await db!.lease.create({ data: { tenantId: t.tenantId, unitId: unit.id, startDate: new Date("2026-01-01"), rentCold: 500 } })).id;
     areaId = (await db!.areaAllocation.create({ data: { tenantId: t.tenantId, propertyId: property.id, leaseId, area: 10, pricePerSqm: 5, from: new Date("2026-01-01") } })).id;
@@ -45,5 +47,12 @@ describeDb("generateMonthlyCharges (#52)", () => {
     await generateMonthlyCharges(t.tenantId, "2026-09", db!);
     await db!.charge.updateMany({ where: { tenantId: t.tenantId, leaseId }, data: { status: "CANCELLED" } });
     expect(await generateMonthlyCharges(t.tenantId, "2026-09", db!)).toMatchObject({ created: 1 });
+  });
+
+  it("Vertrag ohne Miete und ohne Komponenten erzeugt keine Sollstellung", async () => {
+    const unit = await db!.unit.create({ data: { tenantId: t.tenantId, buildingId, label: "B", area: 0 } });
+    const zeroLease = await db!.lease.create({ data: { tenantId: t.tenantId, unitId: unit.id, startDate: new Date("2026-01-01"), rentCold: 0 } });
+    expect(await generateMonthlyCharges(t.tenantId, "2026-09", db!)).toMatchObject({ created: 2 }); // bestehender Vertrag + Fläche, nicht der neue
+    expect(await db!.charge.count({ where: { tenantId: t.tenantId, leaseId: zeroLease.id } })).toBe(0);
   });
 });

@@ -13,6 +13,12 @@ describe("manuelle Sollstellung (#52)", () => {
     }
   });
 });
+describe("Sollstellungsbetrag (#52)", () => {
+  it("Null und negativ sind keine gültigen Beträge", () => {
+    expect(chargeSchema.safeParse({ ...base, type: "MIETE", leaseId: "l1", amount: "0" }).success).toBe(false);
+    expect(chargeSchema.safeParse({ ...base, type: "MIETE", leaseId: "l1", amount: "-5" }).success).toBe(false);
+  });
+});
 describe("Eigentümer (#52)", () => {
   it("validFrom ist Pflicht", () => {
     expect(ownerSchema.safeParse({ personId: "p", unitId: "u", share: "1000" }).success).toBe(false);

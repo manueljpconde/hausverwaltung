@@ -46,6 +46,11 @@ describeDb("Schema-Garantien (#52)", () => {
     await expect(db!.charge.create({ data: rent({ type: "HAUSGELD" }) })).rejects.toThrow(/charge_hausgeld_needs_snapshot/);
   });
 
+  it("Betrag muss positiv sein: 0 und negativ verstoßen gegen den CHECK", async () => {
+    await expect(db!.charge.create({ data: rent({ amount: 0 }) })).rejects.toThrow(/charge_amount_positive/);
+    await expect(db!.charge.create({ data: rent({ amount: -1 }) })).rejects.toThrow(/charge_amount_positive/);
+  });
+
   it("Miete: eine ISSUED je Vertrag/Monat; CANCELLED blockiert nicht", async () => {
     const first = await db!.charge.create({ data: rent() });
     await expect(db!.charge.create({ data: rent() })).rejects.toThrow(uniq("leaseId", "period"));

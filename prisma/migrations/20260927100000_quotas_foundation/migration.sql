@@ -100,6 +100,7 @@ ALTER TABLE "Charge" ADD CONSTRAINT charge_exactly_one_target CHECK (
   (("leaseId" IS NOT NULL)::int + ("areaAllocationId" IS NOT NULL)::int + ("quotaDebtorSnapshotId" IS NOT NULL)::int) = 1
 );
 ALTER TABLE "Charge" ADD CONSTRAINT charge_hausgeld_needs_snapshot CHECK (("type" = 'HAUSGELD') = ("quotaDebtorSnapshotId" IS NOT NULL));
+ALTER TABLE "Charge" ADD CONSTRAINT charge_amount_positive CHECK ("amount" > 0);
 DROP INDEX "Charge_areaAllocationId_period_key";
 CREATE UNIQUE INDEX "Charge_id_tenantId_key" ON "Charge"("id", "tenantId");
 CREATE INDEX "Charge_areaAllocationId_idx" ON "Charge"("areaAllocationId");

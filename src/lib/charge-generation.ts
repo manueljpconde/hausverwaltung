@@ -33,12 +33,13 @@ export async function generateMonthlyCharges(tenantId: string, month: string, db
   let skipped = 0;
   for (const l of leases) {
     const warm = Number(l.rentCold) + l.components.reduce((a, c) => a + Number(c.amount), 0);
+    if (warm <= 0) continue;
     if (await createOnce(db, { tenantId, leaseId: l.id, type: "MIETE", period: first, dueDate: due, amount: warm })) created++;
     else skipped++;
   }
   // Flächenmodell (Gewerbe): nur Teilflächen von Objekten mit areaModel=true, keine
   // Außenflächen (outdoor zählt nicht zur Pool-Summe/NK) — Filter wie das bisherige
-  // generateAreaCharges in api-ops.ts, siehe task-5-report.md.
+  // generateAreaCharges in api-ops.ts.
   const props = await db.property.findMany({
     where: { tenantId, areaModel: true },
     select: {

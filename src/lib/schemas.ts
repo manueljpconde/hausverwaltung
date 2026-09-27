@@ -155,7 +155,7 @@ export const chargeSchema = z.object({
   type: z.enum(["MIETE", "NEBENKOSTEN", "KAUTION", "SONSTIGES"]),
   period: z.coerce.date(),
   dueDate: z.coerce.date(),
-  amount: z.coerce.number(),
+  amount: z.coerce.number().positive(),
   description: optionalStr,
 });
 

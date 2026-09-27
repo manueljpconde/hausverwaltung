@@ -69,7 +69,9 @@ export async function deletePaymentWithAllocations(tenantId: string, paymentId: 
         const ownTotal = allocations.filter((a) => a.chargeId === c.id).reduce((s, a) => s + Number(a.amount), 0);
         const incoming = direction === "EINGANG" ? b.incoming - ownTotal : b.incoming;
         const outgoing = direction === "AUSGANG" ? b.outgoing - ownTotal : b.outgoing;
-        if (outgoing > incoming) {
+        // #52 fix: incoming ist cent-gerundet, ownTotal roh — exakter Vergleich schlägt bei
+        // Rundungsresten (z.B. 0.3 − 0.2 = 0.09999999999999998) fälschlich zu.
+        if (outgoing - incoming > 0.005) {
           throw new PaymentError("Zahlung kann nicht gelöscht werden: Rückzahlungen übersteigen danach die Eingänge");
         }
       }
