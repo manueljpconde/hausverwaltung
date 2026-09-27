@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { roleAllows, WRITE_ROLES, assignableRoles, canDeleteUser, type SessionUser } from "@/lib/rbac";
 import type { ApiPrincipal } from "@/lib/api-auth";
 import * as S from "@/lib/schemas";
+import { chargeHasHistory, deletePaymentWithAllocations, PaymentError, recordPayment } from "@/lib/payments";
 
 // Generische, mandanten-gescopte Schreibschicht für REST-API + MCP.
 // Nutzt dieselben zod-Schemas wie die Server Actions (Feld-Whitelist, Enums,
@@ -25,7 +26,7 @@ type Def = {
   update?: z.ZodTypeAny; // fehlt → nicht aktualisierbar
   relations?: Record<string, string>; // Feld → Delegate für Tenant-Prüfung
   custom?: boolean; // Json-Feld `custom` erlaubt
-  special?: "lease" | "resolution" | "agenda" | "user";
+  special?: "lease" | "resolution" | "agenda" | "user" | "payment" | "owner";
   upsertBy?: string[]; // Felder für Upsert-Where (statt create)
 };
 
@@ -40,7 +41,7 @@ export const REGISTRY: Record<string, Def> = {
   meter: { model: "meter", create: S.meterSchema, relations: { unitId: "unit" } },
   reading: { model: "meterReading", create: S.readingSchema, relations: { meterId: "meter" } },
   person: { model: "person", create: S.personSchema, update: S.personSchema, custom: true },
-  owner: { model: "owner", create: S.ownerSchema, relations: { personId: "person", unitId: "unit" } },
+  owner: { model: "owner", create: S.ownerSchema, relations: { personId: "person", unitId: "unit" }, special: "owner" },
   lease: {
     model: "lease",
     create: S.leaseCreateSchema,
@@ -54,7 +55,7 @@ export const REGISTRY: Record<string, Def> = {
   deposit: { model: "deposit", create: S.depositSchema, relations: { leaseId: "lease", accountId: "account" }, upsertBy: ["leaseId"] },
   account: { model: "account", create: S.accountSchema, update: S.accountSchema },
   charge: { model: "charge", create: S.chargeSchema, relations: { leaseId: "lease" } },
-  payment: { model: "payment", create: S.paymentSchema, relations: { chargeId: "charge", accountId: "account" } },
+  payment: { model: "payment", create: S.paymentSchema, relations: { accountId: "account" }, special: "payment" },
   mandate: { model: "sepaMandate", create: S.mandateSchema, relations: { personId: "person" } },
   cost: { model: "costEntry", create: S.costEntrySchema, relations: { propertyId: "property" } },
   "economic-plan": { model: "economicPlan", create: S.economicPlanSchema, relations: { propertyId: "property" }, upsertBy: ["propertyId", "year"] },
@@ -146,6 +147,16 @@ export async function apiCreate(p: ApiPrincipal, entity: string, body: Record<st
     return { id: created.id };
   }
 
+  if (def.special === "payment") {
+    try {
+      const r = await recordPayment({ ...(data as Parameters<typeof recordPayment>[0]), tenantId });
+      return db.payment.findUniqueOrThrow({ where: { id: r.paymentId }, include: { allocations: true } });
+    } catch (e) {
+      if (e instanceof PaymentError) throw new ApiWriteError(e.message, 400);
+      throw e;
+    }
+  }
+
   if (def.upsertBy) {
     const where = Object.fromEntries(def.upsertBy.map((k) => [k, data[k]]));
     const whereKey = def.upsertBy.length > 1 ? { [def.upsertBy.join("_")]: where } : where;
@@ -156,6 +167,12 @@ export async function apiCreate(p: ApiPrincipal, entity: string, body: Record<st
       create: { ...data, tenantId, ...(customData ? { custom: customData } : {}) },
       update: updateData,
     });
+    return { id: row.id };
+  }
+
+  if (def.special === "owner") {
+    // #52: neue Eigentümer sind immer CONFIRMED (DB-Default ohnehin CONFIRMED).
+    const row = await db.owner.create({ data: { ...data, tenantId, vigencia: "CONFIRMED" } });
     return { id: row.id };
   }
 
@@ -211,6 +228,21 @@ export async function apiDelete(p: ApiPrincipal, entity: string, id: string) {
     if (!canDeleteUser(actor, target.role, target.id)) throw new ApiWriteError("Löschen nicht erlaubt", 403);
     await db.user.delete({ where: { id: target.id } });
     return { id, deleted: 1 };
+  }
+
+  if (entity === "payment") {
+    let n;
+    try {
+      n = await deletePaymentWithAllocations(p.tenantId, id);
+    } catch (e) {
+      if (e instanceof PaymentError) throw new ApiWriteError(e.message, 409);
+      throw e;
+    }
+    if (n === 0) throw new ApiWriteError("Nicht gefunden", 404);
+    return { id, deleted: n };
+  }
+  if (entity === "charge" && (await chargeHasHistory(p.tenantId, id))) {
+    throw new ApiWriteError("Sollstellung mit Zahlungen oder Mahnungen kann nicht gelöscht werden", 409);
   }
 
   const res = await db[def.model].deleteMany({ where: { id, tenantId: p.tenantId } });

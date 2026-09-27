@@ -6,6 +6,9 @@ import { sendMail, type MailAttachment } from "@/lib/adapters/mailer";
 import { readFile, saveFile } from "@/lib/storage";
 import { parseCamt053 } from "@/lib/adapters/bankImport";
 import { isEInvoice, parseEInvoice } from "@/lib/adapters/erechnung";
+import { matchOpenCharge, openChargesForMatching, recordPayment } from "@/lib/payments";
+import { generateMonthlyCharges } from "@/lib/charge-generation";
+import { ALLOCATIONS_FOR_BALANCE, chargeBalance } from "@/lib/charges";
 
 // Dedizierte Operationen (kein reines CRUD) für REST-API + MCP.
 // Fachlogik gespiegelt aus den Server Actions, aber Bearer-Auth statt Session.
@@ -27,48 +30,6 @@ const need = (a: Args, k: string) => {
   return v;
 };
 
-/**
- * Flächenmodell-Miete: je aktiver (nicht-outdoor) Teilfläche mit m²-Preis eine
- * Monats-Sollstellung (Fläche·Preis). Dedup über @@unique(areaAllocationId, period).
- * Gibt Anzahl neu erzeugter Sollstellungen zurück.
- */
-export async function generateAreaCharges(tenantId: string, first: Date, due: Date, last: Date): Promise<number> {
-  const props = await prisma.property.findMany({
-    where: { tenantId, areaModel: true },
-    select: {
-      areaAllocations: {
-        where: { outdoor: false, pricePerSqm: { not: null }, from: { lte: last }, OR: [{ to: null }, { to: { gte: first } }] },
-        select: { id: true, leaseId: true, label: true, area: true, pricePerSqm: true },
-      },
-    },
-  });
-  let created = 0;
-  for (const p of props) {
-    for (const a of p.areaAllocations) {
-      const amount = Number(a.area) * Number(a.pricePerSqm);
-      if (amount <= 0) continue;
-      try {
-        await prisma.charge.create({
-          data: {
-            tenantId,
-            areaAllocationId: a.id,
-            leaseId: a.leaseId ?? null,
-            type: "MIETE",
-            period: first,
-            dueDate: due,
-            amount: Math.round(amount * 100) / 100,
-            description: a.label ?? "Flächenmiete",
-          },
-        });
-        created++;
-      } catch {
-        // Unique-Verletzung → für diese Teilfläche/Periode existiert bereits eine Sollstellung
-      }
-    }
-  }
-  return created;
-}
-
 async function smtpConfig(tenantId: string) {
   const t = await prisma.tenant.findUnique({
     where: { id: tenantId },
@@ -86,23 +47,7 @@ export const OPERATIONS: Record<string, Op> = {
     run: async (p, a) => {
       const month = String(need(a, "month"));
       if (!/^\d{4}-\d{2}$/.test(month)) throw new ApiWriteError("month muss YYYY-MM sein", 400);
-      const [y, m] = month.split("-").map(Number);
-      const first = new Date(Date.UTC(y, m - 1, 1));
-      const last = new Date(Date.UTC(y, m, 0));
-      const due = new Date(Date.UTC(y, m - 1, 3));
-      const leases = await prisma.lease.findMany({
-        where: { tenantId: p.tenantId, startDate: { lte: last }, OR: [{ endDate: null }, { endDate: { gte: first } }] },
-        include: { components: { select: { amount: true } }, charges: { where: { period: first, type: "MIETE" }, select: { id: true } } },
-      });
-      let created = 0;
-      for (const l of leases) {
-        if (l.charges.length > 0) continue;
-        const warm = Number(l.rentCold) + l.components.reduce((x, c) => x + Number(c.amount), 0);
-        await prisma.charge.create({ data: { tenantId: p.tenantId, leaseId: l.id, type: "MIETE", period: first, dueDate: due, amount: warm } });
-        created++;
-      }
-      created += await generateAreaCharges(p.tenantId, first, due, last);
-      return { created, skipped: leases.length - created };
+      return generateMonthlyCharges(p.tenantId, month);
     },
   },
 
@@ -115,14 +60,17 @@ export const OPERATIONS: Record<string, Op> = {
       const charges = await prisma.charge.findMany({
         where: {
           tenantId: p.tenantId,
+          status: "ISSUED",
           dueDate: { lt: now },
-          ...(propertyId ? { lease: { unit: { building: { propertyId } } } } : {}),
+          ...(propertyId
+            ? { OR: [{ lease: { unit: { building: { propertyId } } } }, { areaAllocation: { propertyId } }] }
+            : {}),
         },
-        include: { payments: { select: { amount: true } }, dunnings: { select: { level: true } } },
+        include: { allocations: ALLOCATIONS_FOR_BALANCE, dunnings: { select: { level: true } } },
       });
       let dunned = 0;
       for (const c of charges) {
-        const open = Number(c.amount) - c.payments.reduce((x, pay) => x + Number(pay.amount), 0);
+        const { open } = chargeBalance(c);
         if (open <= 0.005) continue;
         const level = c.dunnings.length + 1;
         if (level > 3) continue;
@@ -209,16 +157,13 @@ export const OPERATIONS: Record<string, Op> = {
         throw new ApiWriteError("camt.053 konnte nicht gelesen werden", 400);
       }
       if (entries.length === 0) throw new ApiWriteError("Keine Buchungen in der Datei", 400);
-      const charges = await prisma.charge.findMany({ where: { tenantId: p.tenantId }, include: { payments: { select: { amount: true } } } });
-      const openMap = charges.map((c) => ({ id: c.id, open: Number(c.amount) - c.payments.reduce((x, pay) => x + Number(pay.amount), 0) }));
+      const open = await openChargesForMatching(p.tenantId);
       let matched = 0;
       for (const e of entries) {
-        let chargeId: string | null = null;
-        if (e.direction === "EINGANG") {
-          const hit = openMap.find((o) => o.open > 0 && Math.abs(o.open - e.amount) < 0.005);
-          if (hit) { chargeId = hit.id; hit.open = 0; matched++; }
-        }
-        await prisma.payment.create({ data: { tenantId: p.tenantId, accountId, chargeId, date: new Date(e.date), amount: e.amount, direction: e.direction, reference: e.reference } });
+        if (e.amount <= 0) continue; // Nullbetrag (z. B. Storno-Zeile) — nichts zu buchen
+        const chargeId = e.direction === "EINGANG" ? matchOpenCharge(open, e.amount) : null;
+        if (chargeId) matched++;
+        await recordPayment({ tenantId: p.tenantId, accountId, chargeId, date: new Date(e.date), amount: e.amount, direction: e.direction, reference: e.reference });
       }
       return { imported: entries.length, matched };
     },

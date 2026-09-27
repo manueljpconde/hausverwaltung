@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { requireSuperAdmin } from "@/lib/rbac";
 import { ensureDefaultAccounts } from "@/lib/accounts";
 import { ACTING_TENANT_COOKIE } from "@/lib/acting-tenant";
+import { deleteTenantData } from "@/lib/tenant-deletion";
 import type { ActionState } from "@/lib/schemas";
 
 // Neuen Mandanten + ersten Admin anlegen (nur Instanz-Admin).
@@ -53,6 +54,6 @@ export async function deleteTenant(fd: FormData): Promise<void> {
   const id = String(fd.get("id") ?? "");
   if (!id || id === user.homeTenantId) return; // eigenen Mandanten nie löschen
   if (id === user.tenantId) (await cookies()).delete(ACTING_TENANT_COOKIE); // ggf. Wechsel aufheben
-  await prisma.tenant.delete({ where: { id } }).catch(() => {});
+  await deleteTenantData(id);
   revalidatePath("/", "layout");
 }

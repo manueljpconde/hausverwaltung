@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { simplePdf } from "../src/lib/pdf";
+import { recordPayment } from "../src/lib/payments";
 
 const prisma = new PrismaClient();
 
@@ -139,7 +140,7 @@ async function main() {
   });
   const wegUnit = wegProp.buildings[0].units[0];
   await prisma.owner.create({
-    data: { tenantId: tenant.id, personId: owner.id, unitId: wegUnit.id, share: 1000 },
+    data: { tenantId: tenant.id, personId: owner.id, unitId: wegUnit.id, share: 1000, vigencia: "CONFIRMED", validFrom: new Date("2020-01-01") },
   });
   await prisma.user.create({
     data: {
@@ -209,9 +210,10 @@ async function main() {
   const paidCharge = await prisma.charge.create({
     data: { tenantId: tenant.id, leaseId: lease1.id, type: "MIETE", period: new Date("2026-06-01"), dueDate: new Date("2026-06-03"), amount: 990.0, description: "Miete Juni 2026" },
   });
-  await prisma.payment.create({
-    data: { tenantId: tenant.id, accountId: account.id, chargeId: paidCharge.id, date: new Date("2026-06-02"), amount: 990.0, direction: "EINGANG", reference: "Miete 06/2026" },
-  });
+  await recordPayment(
+    { tenantId: tenant.id, accountId: account.id, chargeId: paidCharge.id, date: new Date("2026-06-02"), amount: 990.0, direction: "EINGANG", reference: "Miete 06/2026" },
+    prisma,
+  );
   await prisma.charge.create({
     data: { tenantId: tenant.id, leaseId: lease1.id, type: "MIETE", period: new Date("2026-07-01"), dueDate: new Date("2026-07-03"), amount: 990.0, description: "Miete Juli 2026" },
   });

@@ -152,6 +152,9 @@ model Tenant {
   // true bei geseedeten Demo-Daten → öffentliche Marketing-Seite als Fallback
   isDemo Boolean @default(false)
 
+  // #52: Stichtag der Eigentümer-Gültigkeit; UNKNOWN-Eigentümer zählen nur ab hier. Trigger: nur NULL → Wert.
+  ownerValidityCutoverAt DateTime? @default(now())
+
   bankConnector BankConnector?
 }
 
@@ -239,8 +242,10 @@ model Property {
   appointments  Appointment[]
   insurances    Insurance[]
   propertyTax   PropertyTax?
+  assessments   CondominiumAssessment[]
   createdAt     DateTime       @default(now())
 
+  @@unique([id, tenantId])
   @@index([tenantId])
 }
 
@@ -272,9 +277,11 @@ model Unit {
   meters     Meter[]
   tickets    Ticket[]
   documents  Document[]
+  assessmentLines CondominiumAssessmentLine[]
   custom     Json     @default("{}")
   createdAt  DateTime @default(now())
 
+  @@unique([id, tenantId])
   @@index([tenantId])
   @@index([buildingId])
 }
@@ -332,9 +339,11 @@ model Person {
   users     User[]
   documents Document[]
   areaAllocations AreaAllocation[]
+  quotaSnapshots QuotaDebtorSnapshot[]
   custom    Json          @default("{}")
   createdAt DateTime @default(now())
 
+  @@unique([id, tenantId])
   @@index([tenantId])
 }
 
@@ -343,10 +352,13 @@ model Owner {
   id       String  @id @default(cuid())
   tenantId String
   personId String
-  person   Person  @relation(fields: [personId], references: [id], onDelete: Cascade)
+  person   Person  @relation(fields: [personId, tenantId], references: [id, tenantId], onDelete: Cascade)
   unitId   String
-  unit     Unit    @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  unit     Unit    @relation(fields: [unitId, tenantId], references: [id, tenantId], onDelete: Cascade)
   share    Int     @default(1000) // Anteil an der Einheit (Tausendstel)
+  validFrom DateTime?
+  validTo   DateTime?
+  vigencia  OwnerVigencia @default(CONFIRMED) // Bestand vor #52 = UNKNOWN (Migration)
 
   @@index([tenantId])
 }
@@ -370,6 +382,7 @@ model Lease {
   custom        Json             @default("{}")
   createdAt     DateTime         @default(now())
 
+  @@unique([id, tenantId])
   @@index([tenantId])
   @@index([unitId])
 }
@@ -445,7 +458,8 @@ model Deposit {
   type         DepositType
   amount       Decimal     @db.Decimal(10, 2)
   accountId    String? // Kautionskonto
-  account      Account?    @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  // SetNull wirkt in der Migration nur auf accountId (ON DELETE SET NULL ("accountId")); Prisma-Warnung zu tenantId ist erwartet.
+  account      Account?    @relation(fields: [accountId, tenantId], references: [id, tenantId], onDelete: SetNull)
   interestRate Decimal?    @db.Decimal(5, 2) // Verzinsung % p.a.
   receivedDate DateTime?
   returnedDate DateTime?
@@ -474,6 +488,7 @@ model Account {
   bankLinks BankLink[]
   createdAt DateTime    @default(now())
 
+  @@unique([id, tenantId])
   @@index([tenantId])
 }
 
@@ -499,7 +514,7 @@ model BankLink {
   connectorId       String
   connector         BankConnector @relation(fields: [connectorId], references: [id], onDelete: Cascade)
   accountId         String
-  account           Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  account           Account       @relation(fields: [accountId, tenantId], references: [id, tenantId], onDelete: Cascade)
   aspspName         String
   aspspCountry      String
   sessionId         String
@@ -533,22 +548,29 @@ model Charge {
   id          String         @id @default(cuid())
   tenantId    String
   leaseId     String?
-  lease       Lease?         @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  lease       Lease?         @relation(fields: [leaseId, tenantId], references: [id, tenantId], onDelete: Restrict)
   // Flächenmodell-Miete: Sollstellung aus einer Teilfläche (statt Vertrag).
   areaAllocationId String?
-  areaAllocation   AreaAllocation? @relation(fields: [areaAllocationId], references: [id], onDelete: Cascade)
+  areaAllocation   AreaAllocation? @relation(fields: [areaAllocationId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  // #52: Hausgeld-Sollstellung eines Eigentümers (eingefrorener Schuldner).
+  quotaDebtorSnapshotId String?
+  quotaDebtorSnapshot   QuotaDebtorSnapshot? @relation(fields: [quotaDebtorSnapshotId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  status      ChargeStatus   @default(ISSUED)
   type        ChargeType     @default(MIETE)
   period      DateTime // Monatserster des Abrechnungsmonats
   dueDate     DateTime
   amount      Decimal        @db.Decimal(10, 2)
   description String?
-  payments    Payment[]
+  allocations PaymentAllocation[]
   dunnings    DunningNotice[]
   createdAt   DateTime       @default(now())
 
-  @@unique([areaAllocationId, period]) // Dedup je Teilfläche/Monat
+  // Eindeutigkeit (nur ISSUED), Ziel-CHECKs und (id, tenantId) liegen im SQL der Migration.
+  @@unique([id, tenantId])
   @@index([tenantId])
   @@index([leaseId])
+  @@index([areaAllocationId])
+  @@index([quotaDebtorSnapshotId])
 }
 
 enum PaymentDirection {
@@ -560,9 +582,8 @@ model Payment {
   id        String           @id @default(cuid())
   tenantId  String
   accountId String?
-  account   Account?         @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  chargeId  String?
-  charge    Charge?          @relation(fields: [chargeId], references: [id], onDelete: SetNull)
+  // SetNull wirkt in der Migration nur auf accountId (ON DELETE SET NULL ("accountId")); Prisma-Warnung zu tenantId ist erwartet.
+  account   Account?         @relation(fields: [accountId, tenantId], references: [id, tenantId], onDelete: SetNull)
   date      DateTime
   amount    Decimal          @db.Decimal(10, 2)
   direction PaymentDirection @default(EINGANG)
@@ -570,11 +591,12 @@ model Payment {
   externalId String? // Bank-Sync-Transaktions-ID (Dedup)
   note      String? // manuelle Notiz zur Kontobewegung
   documents Document[] // verknüpfte Belege/Dokumente (Rechnungen etc.)
+  allocations PaymentAllocation[]
   createdAt DateTime         @default(now())
 
   @@unique([tenantId, externalId])
+  @@unique([id, tenantId])
   @@index([tenantId])
-  @@index([chargeId])
 }
 
 model SepaMandate {
@@ -595,7 +617,7 @@ model DunningNotice {
   id       String   @id @default(cuid())
   tenantId String
   chargeId String
-  charge   Charge   @relation(fields: [chargeId], references: [id], onDelete: Cascade)
+  charge   Charge   @relation(fields: [chargeId, tenantId], references: [id, tenantId], onDelete: Restrict)
   level    Int      @default(1)
   date     DateTime @default(now())
   fee      Decimal  @default(0) @db.Decimal(10, 2)
@@ -979,6 +1001,7 @@ model AreaAllocation {
   charges     Charge[]
   createdAt   DateTime  @default(now())
 
+  @@unique([id, tenantId])
   @@index([tenantId])
   @@index([propertyId])
 }
@@ -1047,5 +1070,98 @@ model PropertyTax {
   note           String?
   createdAt      DateTime @default(now())
 
+  @@index([tenantId])
+}
+
+enum ChargeStatus {
+  ISSUED
+  CANCELLED
+}
+
+enum OwnerVigencia {
+  CONFIRMED
+  UNKNOWN
+}
+
+enum QuotaKind {
+  ORDINARY
+  EXTRAORDINARY
+}
+
+enum AssessmentMethod {
+  PERMILLAGE
+  FIXED
+  CUSTOM
+}
+
+enum AssessmentStatus {
+  ISSUED
+  CANCELLED
+}
+
+// #52: Zuordnung Zahlung → Sollstellung (einzige Verknüpfung; Saldo nur hieraus).
+model PaymentAllocation {
+  id        String   @id @default(cuid())
+  tenantId  String
+  paymentId String
+  payment   Payment  @relation(fields: [paymentId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  chargeId  String
+  charge    Charge   @relation(fields: [chargeId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  amount    Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([paymentId])
+  @@index([chargeId])
+}
+
+// #52: Hausgeld-Emission je Objekt, Periode und Art (ohne UI in diesem Release).
+model CondominiumAssessment {
+  id          String           @id @default(cuid())
+  tenantId    String
+  propertyId  String
+  property    Property         @relation(fields: [propertyId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  period      DateTime
+  kind        QuotaKind
+  method      AssessmentMethod
+  dueDate     DateTime
+  asOf        DateTime
+  totalCents  Int
+  status      AssessmentStatus @default(ISSUED)
+  lines       CondominiumAssessmentLine[]
+  createdAt   DateTime         @default(now())
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+}
+
+model CondominiumAssessmentLine {
+  id           String                @id @default(cuid())
+  tenantId     String
+  assessmentId String
+  assessment   CondominiumAssessment @relation(fields: [assessmentId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  unitId       String
+  unit         Unit                  @relation(fields: [unitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  amountCents  Int
+  snapshots    QuotaDebtorSnapshot[]
+
+  @@unique([assessmentId, unitId])
+  @@unique([id, tenantId])
+  @@index([tenantId])
+}
+
+model QuotaDebtorSnapshot {
+  id            String                    @id @default(cuid())
+  tenantId      String
+  lineId        String
+  line          CondominiumAssessmentLine @relation(fields: [lineId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  personId      String
+  person        Person                    @relation(fields: [personId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  shareSnapshot Int
+  amountCents   Int
+  charges       Charge[]
+
+  @@unique([lineId, personId])
+  @@unique([id, tenantId])
   @@index([tenantId])
 }

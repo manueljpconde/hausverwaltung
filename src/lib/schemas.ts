@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export type ActionState = { ok?: boolean; error?: string };
+export type ActionState = { ok?: boolean; error?: string; message?: string };
 
 const optionalStr = z
   .string()
@@ -150,11 +150,12 @@ export const accountSchema = z.object({
 });
 
 export const chargeSchema = z.object({
-  leaseId: optionalStr,
-  type: z.enum(["MIETE", "NEBENKOSTEN", "HAUSGELD", "KAUTION", "SONSTIGES"]),
+  // #52: manuell nur mit Vertrag; HAUSGELD entsteht nur über eine Emission.
+  leaseId: z.string().trim().min(1),
+  type: z.enum(["MIETE", "NEBENKOSTEN", "KAUTION", "SONSTIGES"]),
   period: z.coerce.date(),
   dueDate: z.coerce.date(),
-  amount: z.coerce.number(),
+  amount: z.coerce.number().positive(),
   description: optionalStr,
 });
 
@@ -203,6 +204,7 @@ export const ownerSchema = z.object({
   personId: z.string().min(1),
   unitId: z.string().min(1),
   share: z.coerce.number().int().positive().max(1000),
+  validFrom: z.coerce.date(),
 });
 
 export const areaAllocationSchema = z.object({

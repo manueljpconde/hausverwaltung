@@ -2,6 +2,7 @@ import { getTranslations, getLocale } from "next-intl/server";
 import { requireUser } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import { money } from "@/lib/format";
+import { ALLOCATIONS_FOR_BALANCE, chargeBalance, chargeLease } from "@/lib/charges";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -28,12 +29,14 @@ export default async function DunningPage({
   const minDays = Math.max(0, Number(sp.minDays) || 0);
   const now = new Date();
 
+  const leaseInclude = { unit: { include: { building: { include: { property: true } } } } };
   const charges = await prisma.charge.findMany({
-    where: { tenantId: user.tenantId },
+    where: { tenantId: user.tenantId, status: "ISSUED" },
     include: {
-      payments: { select: { amount: true } },
+      allocations: ALLOCATIONS_FOR_BALANCE,
       dunnings: { select: { level: true } },
-      lease: { include: { unit: { include: { building: { include: { property: true } } } } } },
+      lease: { include: leaseInclude },
+      areaAllocation: { select: { lease: { include: leaseInclude } } },
     },
   });
 
@@ -50,13 +53,13 @@ export default async function DunningPage({
   const map = new Map<string, Row>();
 
   for (const c of charges) {
-    const paid = c.payments.reduce((a, p) => a + Number(p.amount), 0);
-    const open = Number(c.amount) - paid;
-    if (open <= 0.001) continue;
-    const verzug = c.dueDate < now ? Math.floor((now.getTime() - c.dueDate.getTime()) / DAY) : 0;
+    const { open } = chargeBalance(c);
+    if (!(open > 0.005 && c.dueDate < now)) continue;
+    const verzug = Math.floor((now.getTime() - c.dueDate.getTime()) / DAY);
     if (verzug < minDays) continue;
 
-    const prop = c.lease?.unit.building.property;
+    const lease = chargeLease(c);
+    const prop = lease?.unit.building.property;
     const key = prop?.id ?? "__none__";
     const name = prop?.name ?? t("common.none");
     let row = map.get(key);
@@ -64,7 +67,7 @@ export default async function DunningPage({
       row = { propertyId: key, name, debitoren: new Set(), opOpen: 0, opGemahnt: 0, opNichtGemahnt: 0, maxVerzug: 0, schuld: 0 };
       map.set(key, row);
     }
-    if (c.leaseId) row.debitoren.add(c.leaseId);
+    if (lease) row.debitoren.add(lease.id);
     row.opOpen += 1;
     if (c.dunnings.length > 0) row.opGemahnt += 1;
     else row.opNichtGemahnt += 1;

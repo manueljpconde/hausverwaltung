@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireWriter } from "@/lib/rbac";
 import {
@@ -13,12 +14,14 @@ import {
 } from "@/lib/schemas";
 import { parseCamt053 } from "@/lib/adapters/bankImport";
 import { ensureDefaultAccounts } from "@/lib/accounts";
-import { generateAreaCharges } from "@/lib/api-ops";
+import { generateMonthlyCharges } from "@/lib/charge-generation";
 import { audit } from "@/lib/audit";
 import { simplePdf } from "@/lib/pdf";
 import { saveFile } from "@/lib/storage";
 import { money } from "@/lib/format";
 import { dunningDocument } from "@/lib/dunning";
+import { chargeHasHistory, deletePaymentWithAllocations, matchOpenCharge, openChargesForMatching, PaymentError, recordPayment, unappliedPart } from "@/lib/payments";
+import { ALLOCATIONS_FOR_BALANCE, chargeBalance, chargeLease, chargeSubject } from "@/lib/charges";
 
 // Standard-Kontenrahmen für den Mandanten anlegen (idempotent).
 export async function seedDefaultAccounts(): Promise<void> {
@@ -69,7 +72,9 @@ export async function createCharge(_p: ActionState, fd: FormData): Promise<Actio
 }
 export async function deleteCharge(fd: FormData): Promise<void> {
   const user = await requireWriter();
-  await prisma.charge.deleteMany({ where: { id: String(fd.get("id") ?? ""), tenantId: user.tenantId } });
+  const id = String(fd.get("id") ?? "");
+  if (await chargeHasHistory(user.tenantId, id)) throw new Error("Sollstellung mit Zahlungen oder Mahnungen kann nicht gelöscht werden");
+  await prisma.charge.deleteMany({ where: { id, tenantId: user.tenantId } });
   revalidatePath("/", "layout");
 }
 
@@ -78,37 +83,7 @@ export async function generateCharges(_p: ActionState, fd: FormData): Promise<Ac
   const user = await requireWriter();
   const r = generateSchema.safeParse(Object.fromEntries(fd));
   if (!r.success) return fail(r.error.issues[0]?.message);
-  const [y, m] = r.data.month.split("-").map(Number);
-  const first = new Date(Date.UTC(y, m - 1, 1));
-  const last = new Date(Date.UTC(y, m, 0));
-  const due = new Date(Date.UTC(y, m - 1, 3));
-
-  const leases = await prisma.lease.findMany({
-    where: {
-      tenantId: user.tenantId,
-      startDate: { lte: last },
-      OR: [{ endDate: null }, { endDate: { gte: first } }],
-    },
-    include: { components: { select: { amount: true } }, charges: { where: { period: first, type: "MIETE" }, select: { id: true } } },
-  });
-
-  let created = 0;
-  for (const l of leases) {
-    if (l.charges.length > 0) continue; // schon vorhanden
-    const warm = Number(l.rentCold) + l.components.reduce((a, c) => a + Number(c.amount), 0);
-    await prisma.charge.create({
-      data: {
-        tenantId: user.tenantId,
-        leaseId: l.id,
-        type: "MIETE",
-        period: first,
-        dueDate: due,
-        amount: warm,
-      },
-    });
-    created++;
-  }
-  created += await generateAreaCharges(user.tenantId, first, due, last);
+  const { created } = await generateMonthlyCharges(user.tenantId, r.data.month);
   revalidatePath("/", "layout");
   return { ok: true, error: created === 0 ? "Keine neuen Sollstellungen (bereits vorhanden)" : undefined };
 }
@@ -118,17 +93,25 @@ export async function createPayment(_p: ActionState, fd: FormData): Promise<Acti
   const user = await requireWriter();
   const r = paymentSchema.safeParse(Object.fromEntries(fd));
   if (!r.success) return fail(r.error.issues[0]?.message);
-  // Zugehörigkeit prüfen (Charge/Account des Mandanten)
-  if (r.data.chargeId) {
-    const c = await prisma.charge.findFirst({ where: { id: r.data.chargeId, tenantId: user.tenantId }, select: { id: true } });
-    if (!c) return fail("Sollstellung nicht gefunden");
+  let res;
+  try {
+    res = await recordPayment({ ...r.data, tenantId: user.tenantId });
+  } catch (e) {
+    if (e instanceof PaymentError) return fail(e.message);
+    throw e;
   }
-  await prisma.payment.create({ data: { ...r.data, tenantId: user.tenantId } });
+  // Überzahlung: gebucht, aber nur bis zum offenen Betrag zugeordnet — dem Nutzer sagen, was übrig bleibt.
+  const rest = unappliedPart(r.data.amount, res.allocated, r.data.chargeId);
+  if (rest) {
+    revalidatePath("/", "layout");
+    const t = await getTranslations("finances");
+    return { ok: true, message: t("partiallyApplied", { applied: rest.applied.toFixed(2), unapplied: rest.unapplied.toFixed(2) }) };
+  }
   return done();
 }
 export async function deletePayment(fd: FormData): Promise<void> {
   const user = await requireWriter();
-  await prisma.payment.deleteMany({ where: { id: String(fd.get("id") ?? ""), tenantId: user.tenantId } });
+  await deletePaymentWithAllocations(user.tenantId, String(fd.get("id") ?? ""));
   revalidatePath("/", "layout");
 }
 
@@ -185,36 +168,21 @@ export async function importCamt(_p: ActionState, fd: FormData): Promise<ActionS
   if (entries.length === 0) return fail("Keine Buchungen in der Datei");
 
   // offene Beträge je Sollstellung für Auto-Matching
-  const charges = await prisma.charge.findMany({
-    where: { tenantId: user.tenantId },
-    include: { payments: { select: { amount: true } } },
-  });
-  const openMap = charges.map((c) => ({
-    id: c.id,
-    open: Number(c.amount) - c.payments.reduce((a, p) => a + Number(p.amount), 0),
-  }));
+  const open = await openChargesForMatching(user.tenantId);
 
   let matched = 0;
   for (const e of entries) {
-    let chargeId: string | null = null;
-    if (e.direction === "EINGANG") {
-      const hit = openMap.find((o) => o.open > 0 && Math.abs(o.open - e.amount) < 0.005);
-      if (hit) {
-        chargeId = hit.id;
-        hit.open = 0; // verbraucht
-        matched++;
-      }
-    }
-    await prisma.payment.create({
-      data: {
-        tenantId: user.tenantId,
-        accountId,
-        chargeId,
-        date: new Date(e.date),
-        amount: e.amount,
-        direction: e.direction,
-        reference: e.reference,
-      },
+    if (e.amount <= 0) continue; // Nullbetrag (z. B. Storno-Zeile) — nichts zu buchen
+    const chargeId = e.direction === "EINGANG" ? matchOpenCharge(open, e.amount) : null;
+    if (chargeId) matched++;
+    await recordPayment({
+      tenantId: user.tenantId,
+      accountId,
+      chargeId,
+      date: new Date(e.date),
+      amount: e.amount,
+      direction: e.direction,
+      reference: e.reference,
     });
   }
   revalidatePath("/", "layout");
@@ -228,10 +196,14 @@ export async function createDunning(_p: ActionState, fd: FormData): Promise<Acti
   const user = await requireWriter();
   const chargeId = String(fd.get("chargeId") ?? "");
   const charge = await prisma.charge.findFirst({
-    where: { id: chargeId, tenantId: user.tenantId },
-    include: { dunnings: { orderBy: { date: "desc" }, take: 1 } },
+    where: { id: chargeId, tenantId: user.tenantId, status: "ISSUED" },
+    include: { dunnings: { orderBy: { date: "desc" }, take: 1 }, allocations: ALLOCATIONS_FOR_BALANCE },
   });
   if (!charge) return fail("Sollstellung nicht gefunden");
+  const { open } = chargeBalance(charge);
+  if (!(open > 0.005 && charge.dueDate < new Date())) {
+    return fail("Sollstellung ist nicht überfällig oder bereits ausgeglichen");
+  }
 
   // Nächste Stufe erst nach Ablauf der Frist seit der letzten Mahnung.
   const last = charge.dunnings[0];
@@ -257,34 +229,37 @@ export async function createDunning(_p: ActionState, fd: FormData): Promise<Acti
 export async function emailDunning(_p: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireWriter();
   const chargeId = String(fd.get("chargeId") ?? "");
+  const leaseInclude = {
+    unit: { include: { building: { include: { property: { include: { tenant: true } } } } } },
+    renters: { include: { person: true } },
+  };
   const charge = await prisma.charge.findFirst({
     where: { id: chargeId, tenantId: user.tenantId },
     include: {
-      payments: { select: { amount: true } },
       dunnings: { orderBy: { level: "desc" }, take: 1 },
-      lease: {
-        include: {
-          unit: { include: { building: { include: { property: { include: { tenant: true } } } } } },
-          renters: { include: { person: true } },
-        },
+      allocations: ALLOCATIONS_FOR_BALANCE,
+      lease: { include: leaseInclude },
+      areaAllocation: { select: { label: true, lease: { include: leaseInclude } } },
+      quotaDebtorSnapshot: {
+        select: { person: { select: { firstName: true, lastName: true } }, line: { select: { unit: { select: { label: true } } } } },
       },
     },
   });
-  if (!charge || !charge.lease) return fail("Sollstellung nicht gefunden");
+  const lease = charge ? chargeLease(charge) : null;
+  if (!charge || !lease) return fail("Sollstellung nicht gefunden");
 
-  const paid = charge.payments.reduce((a, p) => a + Number(p.amount), 0);
-  const open = Number(charge.amount) - paid;
+  const { open } = chargeBalance(charge);
   const dun = charge.dunnings[0];
   const fee = dun ? Number(dun.fee) : 0;
   const level = dun?.level ?? 1;
-  const property = charge.lease.unit.building.property;
-  const renter = charge.lease.renters[0]?.person;
+  const property = lease.unit.building.property;
+  const renter = lease.renters[0]?.person;
   if (!renter?.email) return fail("Kein Mieter mit E-Mail-Adresse hinterlegt.");
 
   const built = dunningDocument({
     level,
     propertyName: property.name,
-    unitLabel: charge.lease.unit.label,
+    unitLabel: chargeSubject(charge),
     renterName: `${renter.firstName} ${renter.lastName}`,
     tenantName: property.tenant.name,
     chargeTypeLabel: charge.type,
@@ -296,7 +271,7 @@ export async function emailDunning(_p: ActionState, fd: FormData): Promise<Actio
   const title = built.title;
   const total = open + fee;
   const pdf = simplePdf(title, built.lines);
-  const name = `${title} - ${charge.lease.unit.label}.pdf`;
+  const name = `${title} - ${lease.unit.label}.pdf`;
   const storageKey = await saveFile(pdf, name);
   const doc = await prisma.document.create({
     data: {
@@ -319,7 +294,7 @@ export async function emailDunning(_p: ActionState, fd: FormData): Promise<Actio
       attachments: { create: [{ documentId: doc.id }] },
     },
   });
-  await audit(user, "CREATE", "EmailMessage", null, `${title} ${charge.lease.unit.label}`);
+  await audit(user, "CREATE", "EmailMessage", null, `${title} ${lease.unit.label}`);
   revalidatePath("/", "layout");
   return { ok: true };
 }

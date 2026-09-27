@@ -58,14 +58,14 @@ describe.skipIf(!databaseUrl)("CrmWare demo seed database contract (#46)", () =>
     const chargeMonths = charges.map((charge) => `${charge.leaseId}:${charge.period.toISOString().slice(0, 7)}`);
     expect(new Set(chargeMonths).size).toBe(chargeMonths.length);
     expect(await client!.charge.count({
-      where: { tenantId: { in: tenantIds }, dunnings: { some: {} }, payments: { some: {} } },
+      where: { tenantId: { in: tenantIds }, dunnings: { some: {} }, allocations: { some: {} } },
     })).toBe(0);
     expect(await client!.payment.count({
-      where: { tenantId: { in: tenantIds }, account: { name: "Conta de rendas" }, chargeId: null },
+      where: { tenantId: { in: tenantIds }, account: { name: "Conta de rendas" }, allocations: { none: {} } },
     })).toBe(0);
     const rentalTenantId = seededTenants.find((tenant) => tenant.name === CRMWARE_DEMO_SCENARIOS[2].tenantName)!.id;
     expect(await client!.payment.count({
-      where: { tenantId: rentalTenantId, account: { name: "Conta operacional" }, chargeId: null },
+      where: { tenantId: rentalTenantId, account: { name: "Conta operacional" }, allocations: { none: {} } },
     })).toBe(78);
 
     const mixedTenantId = seededTenants.find((tenant) => tenant.name === CRMWARE_DEMO_SCENARIOS[0].tenantName)!.id;
@@ -142,12 +142,27 @@ describe.skipIf(!databaseUrl)("CrmWare demo seed database contract (#46)", () =>
       where: { tenantId: mixedTenantId, leaseId: { not: null } },
       select: { tenantId: true, leaseId: true, type: true, period: true, dueDate: true, amount: true, description: true },
     });
-    const duplicate = await client!.charge.create({ data: chargeToDuplicate });
+    await expect(client!.charge.create({ data: chargeToDuplicate })).rejects.toThrow(/Unique constraint/);
+    const duplicate = await client!.charge.create({ data: { ...chargeToDuplicate, type: "SONSTIGES" } });
     try {
       const corrupted = await validateSeededScenarios(client!);
-      expect(corrupted.find((row) => row.scenario === "mixed")?.errors.join(" ")).toMatch(/cobrado 2 vezes/);
+      const errors = corrupted.find((row) => row.scenario === "mixed")?.errors.join(" ");
+      expect(errors).toMatch(/cobrado 2 vezes/);
+      expect(errors).toMatch(new RegExp(`cobrança sem aviso em aberto: ${duplicate.id}`));
     } finally {
       await client!.charge.delete({ where: { id: duplicate.id } });
+    }
+
+    const paidCharge = await client!.charge.findFirstOrThrow({
+      where: { tenantId: mixedTenantId, allocations: { some: {} } },
+      select: { id: true },
+    });
+    const dunningOnPaid = await client!.dunningNotice.create({ data: { tenantId: mixedTenantId, chargeId: paidCharge.id, level: 1, fee: 0 } });
+    try {
+      const corrupted = await validateSeededScenarios(client!);
+      expect(corrupted.find((row) => row.scenario === "mixed")?.errors.join(" ")).toMatch(new RegExp(`cobrança em aviso já paga ou não vencida: ${paidCharge.id}`));
+    } finally {
+      await client!.dunningNotice.delete({ where: { id: dunningOnPaid.id } });
     }
 
     const notification = await client!.notification.findFirstOrThrow({ where: { tenantId: mixedTenantId } });

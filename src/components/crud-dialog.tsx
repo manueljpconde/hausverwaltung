@@ -56,7 +56,7 @@ export function CrudDialog({
     if (state.ok && handledState.current !== state) {
       handledState.current = state;
       setOpen(false);
-      toast.success(t("saved"));
+      toast.success(state.message ?? t("saved"));
       router.refresh(); // abhängige Übersichten sofort aktualisieren
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

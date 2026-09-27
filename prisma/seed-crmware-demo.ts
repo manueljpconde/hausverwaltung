@@ -4,6 +4,8 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { simplePdf } from "../src/lib/pdf";
+import { chargeBalance } from "../src/lib/charges";
+import { recordPayment } from "../src/lib/payments";
 
 export function resolveDemoAnchor(now = new Date()): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 12));
@@ -317,9 +319,13 @@ async function deleteTenantData(tenantId: string): Promise<void> {
   await prisma.$transaction([
     prisma.emailMessage.deleteMany({ where: { tenantId } }),
     prisma.document.deleteMany({ where: { tenantId } }),
+    prisma.paymentAllocation.deleteMany({ where: { tenantId } }),
     prisma.dunningNotice.deleteMany({ where: { tenantId } }),
     prisma.payment.deleteMany({ where: { tenantId } }),
     prisma.charge.deleteMany({ where: { tenantId } }),
+    prisma.quotaDebtorSnapshot.deleteMany({ where: { tenantId } }),
+    prisma.condominiumAssessmentLine.deleteMany({ where: { tenantId } }),
+    prisma.condominiumAssessment.deleteMany({ where: { tenantId } }),
     prisma.deposit.deleteMany({ where: { tenantId } }),
     prisma.account.deleteMany({ where: { tenantId } }),
     prisma.sepaMandate.deleteMany({ where: { tenantId } }),
@@ -522,17 +528,18 @@ async function createOwnerships(
   condoOwners: { id: string }[],
   landlords: { id: string }[],
 ) {
+  const validity = { vigencia: "CONFIRMED", validFrom: demoDate(-24, 1) } as const;
   const condoOwnerships = [];
   for (let i = 0; i < condoUnits.length; i++) {
-    condoOwnerships.push(await prisma.owner.create({ data: { tenantId, unitId: condoUnits[i].id, personId: condoOwners[i % condoOwners.length].id, share: 1000 } }));
+    condoOwnerships.push(await prisma.owner.create({ data: { tenantId, unitId: condoUnits[i].id, personId: condoOwners[i % condoOwners.length].id, share: 1000, ...validity } }));
   }
   for (let i = condoUnits.length; i < condoOwners.length; i++) {
     const ownership = condoOwnerships[(i - condoUnits.length) % condoOwnerships.length];
     await prisma.owner.update({ where: { id: ownership.id }, data: { share: 500 } });
-    await prisma.owner.create({ data: { tenantId, unitId: ownership.unitId, personId: condoOwners[i].id, share: 500 } });
+    await prisma.owner.create({ data: { tenantId, unitId: ownership.unitId, personId: condoOwners[i].id, share: 500, ...validity } });
   }
   for (let i = 0; i < rentalUnits.length; i++) {
-    await prisma.owner.create({ data: { tenantId, unitId: rentalUnits[i].id, personId: landlords[i % landlords.length].id, share: 1000 } });
+    await prisma.owner.create({ data: { tenantId, unitId: rentalUnits[i].id, personId: landlords[i % landlords.length].id, share: 1000, ...validity } });
   }
 }
 
@@ -688,20 +695,19 @@ async function createFinance(tenantId: string, scenario: DemoScenario, leases: D
         createdAt: period,
       },
     });
-    const payment = await prisma.payment.create({
-      data: {
-        tenantId,
-        accountId: account.id,
-        chargeId: charge.id,
-        date: paymentDate,
-        amount: lease.rentTotal,
-        direction: "EINGANG",
-        reference: `PT-DEMO-${scenario.key.toUpperCase()}-${String(i + 1).padStart(5, "0")}`,
-        externalId: `crmware-demo-${scenario.key}-${i + 1}`,
-        createdAt: period,
-      },
-    });
-    payments.push({ id: payment.id, propertyId: lease.propertyId, amount: lease.rentTotal, date: paymentDate, unitId: lease.unitId, personId: lease.renterPersonId });
+    const payment = await recordPayment({
+      tenantId,
+      accountId: account.id,
+      chargeId: charge.id,
+      date: paymentDate,
+      amount: lease.rentTotal,
+      direction: "EINGANG",
+      reference: `PT-DEMO-${scenario.key.toUpperCase()}-${String(i + 1).padStart(5, "0")}`,
+      externalId: `crmware-demo-${scenario.key}-${i + 1}`,
+    }, prisma);
+    if (payment.allocated !== lease.rentTotal) throw new Error(`${scenario.key}: renda ${charge.id} não ficou liquidada`);
+    await prisma.payment.update({ where: { id: payment.paymentId }, data: { createdAt: period } });
+    payments.push({ id: payment.paymentId, propertyId: lease.propertyId, amount: lease.rentTotal, date: paymentDate, unitId: lease.unitId, personId: lease.renterPersonId });
   }
 
   for (let i = payments.length; i < scenario.targets.financialMovements; i++) {
@@ -709,19 +715,17 @@ async function createFinance(tenantId: string, scenario: DemoScenario, leases: D
     const property = condoProperties.length ? condoProperties[i % condoProperties.length] : null;
     const paymentDate = historicalDemoDate(monthOffset, 5 + (i % 3));
     const amount = 75 + (i % 11) * 12.5;
-    const payment = await prisma.payment.create({
-      data: {
-        tenantId,
-        accountId: property ? condoAccounts[i % condoAccounts.length].id : operationalAccount!.id,
-        date: paymentDate,
-        amount,
-        direction: i % 5 === 4 ? "AUSGANG" : "EINGANG",
-        reference: `${property ? `Movimento bancário ${property.name}` : "Movimento bancário operacional"} - ${String(i + 1).padStart(5, "0")}`,
-        externalId: `crmware-demo-${scenario.key}-${i + 1}`,
-        createdAt: historicalDemoDate(monthOffset, 1),
-      },
-    });
-    payments.push({ id: payment.id, propertyId: property?.id ?? leases[i % leases.length].propertyId, amount, date: paymentDate });
+    const payment = await recordPayment({
+      tenantId,
+      accountId: property ? condoAccounts[i % condoAccounts.length].id : operationalAccount!.id,
+      date: paymentDate,
+      amount,
+      direction: i % 5 === 4 ? "AUSGANG" : "EINGANG",
+      reference: `${property ? `Movimento bancário ${property.name}` : "Movimento bancário operacional"} - ${String(i + 1).padStart(5, "0")}`,
+      externalId: `crmware-demo-${scenario.key}-${i + 1}`,
+    }, prisma);
+    await prisma.payment.update({ where: { id: payment.paymentId }, data: { createdAt: historicalDemoDate(monthOffset, 1) } });
+    payments.push({ id: payment.paymentId, propertyId: property?.id ?? leases[i % leases.length].propertyId, amount, date: paymentDate });
   }
 
   for (let i = 0; i < delinquentLeases.length; i++) {
@@ -958,12 +962,12 @@ export async function validateSeededScenarios(client: PrismaClient = prisma): Pr
       client.ticket.findMany({ where: { tenantId }, select: { propertyId: true, unitId: true, createdAt: true, unit: { select: { building: { select: { propertyId: true } }, leases: { select: { startDate: true, endDate: true, renters: { select: { personId: true } } } } } }, reporter: { select: { personId: true } } } }),
       client.user.findMany({ where: { tenantId, role: "MIETER" }, select: { email: true, person: { select: { renters: { select: { lease: { select: { startDate: true, endDate: true, charges: { select: { id: true } } } } } } } } } }),
       client.meeting.findMany({ where: { tenantId }, select: { id: true, propertyId: true, date: true, status: true, protocol: true, property: { select: { buildings: { select: { units: { select: { id: true } } } } } }, resolutions: { select: { propertyId: true, number: true, result: true, votesYes: true, votesNo: true, votesAbstain: true } } } }),
-      client.charge.findMany({ where: { tenantId }, select: { id: true, leaseId: true, type: true, period: true, amount: true, lease: { select: { startDate: true, endDate: true, rentCold: true, components: { select: { amount: true } } } }, payments: { select: { amount: true } }, dunnings: { select: { id: true } } } }),
+      client.charge.findMany({ where: { tenantId }, select: { id: true, leaseId: true, quotaDebtorSnapshotId: true, type: true, status: true, period: true, dueDate: true, amount: true, lease: { select: { startDate: true, endDate: true, rentCold: true, components: { select: { amount: true } } } }, allocations: { select: { amount: true, payment: { select: { amount: true, direction: true } } } }, dunnings: { select: { id: true } } } }),
       client.person.findMany({ where: { tenantId }, select: { custom: true } }),
       client.property.findMany({ where: { tenantId }, select: { custom: true } }),
       client.person.findMany({ where: { tenantId, note: { startsWith: "Condómino" } }, select: { id: true, owners: { select: { id: true } } } }),
       client.account.findMany({ where: { tenantId, name: { startsWith: "Conta - " } }, select: { name: true, payments: { select: { id: true } } } }),
-      client.account.findMany({ where: { tenantId, name: "Conta de rendas" }, select: { payments: { select: { chargeId: true } } } }),
+      client.account.findMany({ where: { tenantId, name: "Conta de rendas" }, select: { payments: { select: { amount: true, allocations: { select: { amount: true } } } } } }),
     ]);
     const active = leases.filter((lease) => lease.startDate <= CRMWARE_DEMO_ANCHOR && (!lease.endDate || lease.endDate >= CRMWARE_DEMO_ANCHOR)).length;
     const future = leases.filter((lease) => lease.startDate > CRMWARE_DEMO_ANCHOR).length;
@@ -1007,17 +1011,19 @@ export async function validateSeededScenarios(client: PrismaClient = prisma): Pr
     }
 
     for (const charge of chargeRows) {
-      if (charge.type === "HAUSGELD" && !charge.lease) errors.push("quota de condomínio sem relação estrutural");
+      if (charge.type === "HAUSGELD" && !charge.quotaDebtorSnapshotId) errors.push("quota de condomínio sem relação estrutural");
       if (!charge.lease) continue;
       if (charge.period < charge.lease.startDate || (charge.lease.endDate && charge.period > charge.lease.endDate)) {
         errors.push(`cobrança fora da vigência: ${charge.period.toISOString()}`);
       }
       const expected = Number(charge.lease.rentCold) + charge.lease.components.reduce((sum, component) => sum + Number(component.amount), 0);
       if (Math.abs(Number(charge.amount) - expected) > 0.001) errors.push(`renda divergente: esperado ${expected}, obtido ${charge.amount}`);
-      if (charge.payments.some((payment) => Math.abs(Number(payment.amount) - Number(charge.amount)) > 0.001)) {
+      if (charge.allocations.some((allocation) => Math.abs(Number(allocation.payment.amount) - Number(charge.amount)) > 0.001 || Math.abs(Number(allocation.amount) - Number(charge.amount)) > 0.001)) {
         errors.push("pagamento divergente da cobrança");
       }
-      if (charge.dunnings.length && charge.payments.length) errors.push(`cobrança em aviso já paga: ${charge.id}`);
+      const { open } = chargeBalance(charge);
+      if (charge.dunnings.length && (charge.allocations.length || open <= 0.005 || charge.dueDate >= CRMWARE_DEMO_ANCHOR)) errors.push(`cobrança em aviso já paga ou não vencida: ${charge.id}`);
+      if (!charge.dunnings.length && open > 0.005) errors.push(`cobrança sem aviso em aberto: ${charge.id}`);
     }
     const chargeMonthCounts = new Map<string, number>();
     for (const charge of chargeRows) {
@@ -1069,7 +1075,9 @@ export async function validateSeededScenarios(client: PrismaClient = prisma): Pr
 
     if (condoOwnerRows.some((person) => person.owners.length === 0)) errors.push("condómino sem fração");
     if (condoAccounts.some((account) => account.payments.length === 0)) errors.push("condomínio sem movimentos financeiros");
-    if (rentAccounts.some((account) => account.payments.some((payment) => !payment.chargeId))) errors.push("movimento da conta de rendas sem cobrança");
+    if (rentAccounts.some((account) => account.payments.some((payment) => Math.abs(payment.allocations.reduce((sum, allocation) => sum + Number(allocation.amount), 0) - Number(payment.amount)) > 0.001))) {
+      errors.push("movimento da conta de rendas sem cobrança ou não imputado integralmente");
+    }
 
     for (const meeting of meetingRows) {
       if (meeting.status === "DURCHGEFUEHRT" && (meeting.date > CRMWARE_DEMO_ANCHOR || !meeting.protocol)) errors.push("assembleia realizada com data/ata incoerente");

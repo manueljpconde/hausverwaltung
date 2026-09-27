@@ -4,6 +4,7 @@ import { roleAllows } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import { simplePdf } from "@/lib/pdf";
 import { dunningDocument } from "@/lib/dunning";
+import { ALLOCATIONS_FOR_BALANCE, chargeBalance, chargeLease, chargeSubject } from "@/lib/charges";
 
 // Mahnung / Zahlungserinnerung zu einer Sollstellung direkt als PDF (statt der
 // HTML-Vorschauseite; umgeht auch das Darkmode-Darstellungsproblem). Spiegelt
@@ -15,31 +16,34 @@ export async function GET(_req: Request, { params }: { params: Promise<{ chargeI
 
   const { chargeId } = await params;
   const tenantId = await actingTenantId(session.user);
+  const leaseInclude = {
+    unit: { include: { building: { include: { property: { include: { tenant: { select: { name: true } } } } } } } },
+    renters: { include: { person: true } },
+  };
   const charge = await prisma.charge.findFirst({
     where: { id: chargeId, tenantId },
     include: {
-      payments: { select: { amount: true } },
       dunnings: { orderBy: { level: "desc" }, take: 1 },
-      lease: {
-        include: {
-          unit: { include: { building: { include: { property: { include: { tenant: { select: { name: true } } } } } } } },
-          renters: { include: { person: true } },
-        },
+      allocations: ALLOCATIONS_FOR_BALANCE,
+      lease: { include: leaseInclude },
+      areaAllocation: { select: { label: true, lease: { include: leaseInclude } } },
+      quotaDebtorSnapshot: {
+        select: { person: { select: { firstName: true, lastName: true } }, line: { select: { unit: { select: { label: true } } } } },
       },
     },
   });
-  if (!charge || !charge.lease) return new Response("Not found", { status: 404 });
+  const lease = charge ? chargeLease(charge) : null;
+  if (!charge || !lease) return new Response("Not found", { status: 404 });
 
-  const paid = charge.payments.reduce((a, p) => a + Number(p.amount), 0);
-  const open = Number(charge.amount) - paid;
+  const { open } = chargeBalance(charge);
   const dun = charge.dunnings[0];
-  const property = charge.lease.unit.building.property;
-  const renter = charge.lease.renters[0]?.person;
+  const property = lease.unit.building.property;
+  const renter = lease.renters[0]?.person;
 
   const doc = dunningDocument({
     level: dun?.level ?? 1,
     propertyName: property.name,
-    unitLabel: charge.lease.unit.label,
+    unitLabel: chargeSubject(charge),
     renterName: renter ? `${renter.firstName} ${renter.lastName}` : "",
     tenantName: property.tenant.name,
     chargeTypeLabel: charge.type,
