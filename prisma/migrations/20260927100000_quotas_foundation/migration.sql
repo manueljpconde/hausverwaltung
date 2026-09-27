@@ -175,13 +175,17 @@ CREATE TRIGGER assessment_line_unit_in_property BEFORE INSERT OR UPDATE ON "Cond
 -- Dieselbe Invariante bei nachträglichen Verschiebungen (Einheit, Gebäude, Assessment); ohne Quota-Zeilen frei.
 -- Das UPDATE sperrt die eigene Zeile vor dem BEFORE-Trigger; wartet es dabei auf eine anlegende Zeile, liest
 -- die Abfrage im Trigger (READ COMMITTED: neuer Snapshot je Anweisung) die inzwischen festgeschriebene Zeile.
+-- Einheit verschieben: das Zielgebäude FOR SHARE lesen. Sonst könnte es parallel in ein anderes Objekt wandern
+-- (dessen UPDATE kollidiert nicht mit der FOR KEY SHARE der FK-Prüfung). Sperrreihenfolge Unit (eigene Zeile)
+-- → Building, wie im Zeilen-Trigger; Gebäude-Verschiebungen sperren nur ihr Gebäude → kein Zyklus.
 CREATE FUNCTION unit_move_keeps_assessment_lines() RETURNS trigger AS $$
+DECLARE target_property TEXT;
 BEGIN
+  SELECT b."propertyId" INTO target_property FROM "Building" b WHERE b.id = NEW."buildingId" FOR SHARE;
   IF EXISTS (
     SELECT 1 FROM "CondominiumAssessmentLine" l
     JOIN "CondominiumAssessment" a ON a.id = l."assessmentId"
-    WHERE l."unitId" = NEW.id
-      AND a."propertyId" IS DISTINCT FROM (SELECT b."propertyId" FROM "Building" b WHERE b.id = NEW."buildingId")
+    WHERE l."unitId" = NEW.id AND a."propertyId" IS DISTINCT FROM target_property
   ) THEN
     RAISE EXCEPTION 'assessment line unit not in assessment property';
   END IF;

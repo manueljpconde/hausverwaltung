@@ -3,7 +3,7 @@ import { cpSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { PrismaClient } from "@prisma/client";
-import { afterAll, afterEach, beforeEach, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, expect, it } from "vitest";
 import { createTestTenant, describeDb, integrationDb as db } from "./test-db";
 
 // #52: Die Garantien liegen in der Datenbank, nicht nur in der Anwendung.
@@ -216,10 +216,11 @@ describeDb("Schema-Garantien (#52)", () => {
 
 // Zwei Verbindungen: Zeile anlegen und Einheit/Gebäude verschieben dürfen sich nicht überholen.
 describeDb("Quota-Zeile/Objekt-Invariante unter Nebenläufigkeit (#52)", () => {
-  const db2 = new PrismaClient({ datasources: { db: { url: process.env.INTEGRATION_DATABASE_URL } } });
+  // Erst in beforeAll: der describe-Callback läuft auch bei übersprungener Suite (ohne URL).
+  let db2: PrismaClient;
   const msg = /assessment line unit not in assessment property/;
   const txOpts = { timeout: 15_000, maxWait: 5_000 };
-  let f: Awaited<ReturnType<typeof fixtures>> & { buildingId: string; assessmentId: string; p2: string; b2: string };
+  let f: Awaited<ReturnType<typeof fixtures>> & { buildingId: string; assessmentId: string; p2: string; b2: string; b1b: string };
 
   const gate = () => { let open!: () => void; const p = new Promise<void>((r) => (open = r)); return { p, open }; };
   // true, wenn das Promise nach `ms` noch offen ist (= wartet auf eine Zeilensperre).
@@ -245,11 +246,15 @@ describeDb("Quota-Zeile/Objekt-Invariante unter Nebenläufigkeit (#52)", () => {
       started?.();
       await hold;
     }, txOpts);
-  const move = (client: PrismaClient, what: "building" | "unit", hold?: Promise<void>, started?: () => void) =>
+  // building: Gebäude der Einheit → P2; unit: Einheit → B2 (P2); unitSameProperty: Einheit → B1b (P1);
+  // targetBuilding: B1b → P2.
+  const move = (client: PrismaClient, what: "building" | "unit" | "unitSameProperty" | "targetBuilding", hold?: Promise<void>, started?: () => void) =>
     client.$transaction(async (tx) => {
       await lockTimeout(tx);
       if (what === "building") await tx.building.update({ where: { id: f.buildingId }, data: { propertyId: f.p2 } });
-      else await tx.unit.update({ where: { id: f.unitId }, data: { buildingId: f.b2 } });
+      else if (what === "unit") await tx.unit.update({ where: { id: f.unitId }, data: { buildingId: f.b2 } });
+      else if (what === "unitSameProperty") await tx.unit.update({ where: { id: f.unitId }, data: { buildingId: f.b1b } });
+      else await tx.building.update({ where: { id: f.b1b }, data: { propertyId: f.p2 } });
       started?.();
       await hold;
     }, txOpts);
@@ -260,14 +265,18 @@ describeDb("Quota-Zeile/Objekt-Invariante unter Nebenläufigkeit (#52)", () => {
     const { buildingId } = await db!.unit.findUniqueOrThrow({ where: { id: base.unitId } });
     const p2 = await db!.property.create({ data: { tenantId: t.tenantId, name: "P2", street: "S", zip: "1000-001", city: "Lisboa" } });
     const b2 = await db!.building.create({ data: { tenantId: t.tenantId, propertyId: p2.id, name: "B2" } });
+    const b1b = await db!.building.create({ data: { tenantId: t.tenantId, propertyId: base.propertyId, name: "B1b" } });
     const a = await db!.condominiumAssessment.create({ data: { tenantId: t.tenantId, propertyId: base.propertyId, period: month, kind: "ORDINARY", method: "PERMILLAGE", dueDate: month, asOf: month, totalCents: 100 } });
-    f = { ...base, buildingId, assessmentId: a.id, p2: p2.id, b2: b2.id };
+    f = { ...base, buildingId, assessmentId: a.id, p2: p2.id, b2: b2.id, b1b: b1b.id };
   });
   afterEach(async () => {
     await t.cleanup();
   });
+  beforeAll(() => {
+    db2 = new PrismaClient({ datasources: { db: { url: process.env.INTEGRATION_DATABASE_URL } } });
+  });
   afterAll(async () => {
-    await db2.$disconnect();
+    await db2?.$disconnect();
   });
 
   for (const what of ["building", "unit"] as const) {
@@ -277,6 +286,26 @@ describeDb("Quota-Zeile/Objekt-Invariante unter Nebenläufigkeit (#52)", () => {
       const a = insertLine(db!, hold.p, inserted.open);
       await inserted.p;
       const b = move(db2, what);
+      const wasBlocked = await blocked(b);
+      hold.open();
+      const [ra, rb] = await Promise.allSettled([a, b]);
+      expect(await crossPropertyLines()).toBe(0);
+      expect(ra.status).toBe("fulfilled");
+      expect(rb.status).toBe("rejected");
+      expect(String((rb as PromiseRejectedResult).reason)).toMatch(msg);
+      expect(wasBlocked).toBe(true);
+    }, 30_000);
+  }
+
+  // Verschiebung gegen Verschiebung: Einheit in ein Gebäude desselben Objekts, das zugleich in P2 wandert.
+  for (const [first, second] of [["unitSameProperty", "targetBuilding"], ["targetBuilding", "unitSameProperty"]] as const) {
+    it(`bestehende Zeile: erst ${first}, dann ${second} — die zweite Verschiebung wartet und scheitert`, async () => {
+      await db!.condominiumAssessmentLine.create({ data: { tenantId: t.tenantId, assessmentId: f.assessmentId, unitId: f.unitId, amountCents: 100 } });
+      const hold = gate();
+      const started = gate();
+      const a = move(db!, first, hold.p, started.open);
+      await started.p;
+      const b = move(db2, second);
       const wasBlocked = await blocked(b);
       hold.open();
       const [ra, rb] = await Promise.allSettled([a, b]);
