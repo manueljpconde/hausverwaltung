@@ -153,13 +153,17 @@ ALTER TABLE "DunningNotice" ADD CONSTRAINT "DunningNotice_chargeId_tenantId_fkey
 
 -- Quota-Zeile: die Einheit muss im Objekt des Assessments liegen (Unit → Building → Property).
 -- Fehlt Einheit oder Assessment im Mandanten, greift die zusammengesetzte FK mit ihrem eigenen Namen.
+-- Nebenläufigkeit: FOR SHARE kollidiert mit der Zeilensperre einer Verschiebung (UPDATE). Sperrreihenfolge
+-- immer CondominiumAssessment → Unit → Building. Läuft die Verschiebung zuerst, wartet die Zeile und liest
+-- danach den neuen Stand; läuft die Zeile zuerst, wartet die Verschiebung und ihr Trigger sieht die Zeile.
 CREATE FUNCTION assessment_line_unit_in_property() RETURNS trigger AS $$
-DECLARE unit_property TEXT; assessment_property TEXT;
+DECLARE unit_building TEXT; unit_property TEXT; assessment_property TEXT;
 BEGIN
-  SELECT b."propertyId" INTO unit_property FROM "Unit" u JOIN "Building" b ON b.id = u."buildingId"
-    WHERE u.id = NEW."unitId" AND u."tenantId" = NEW."tenantId";
   SELECT a."propertyId" INTO assessment_property FROM "CondominiumAssessment" a
-    WHERE a.id = NEW."assessmentId" AND a."tenantId" = NEW."tenantId";
+    WHERE a.id = NEW."assessmentId" AND a."tenantId" = NEW."tenantId" FOR SHARE;
+  SELECT u."buildingId" INTO unit_building FROM "Unit" u
+    WHERE u.id = NEW."unitId" AND u."tenantId" = NEW."tenantId" FOR SHARE;
+  SELECT b."propertyId" INTO unit_property FROM "Building" b WHERE b.id = unit_building FOR SHARE;
   IF unit_property IS DISTINCT FROM assessment_property AND unit_property IS NOT NULL AND assessment_property IS NOT NULL THEN
     RAISE EXCEPTION 'assessment line unit not in assessment property';
   END IF;
@@ -169,6 +173,8 @@ CREATE TRIGGER assessment_line_unit_in_property BEFORE INSERT OR UPDATE ON "Cond
   FOR EACH ROW EXECUTE FUNCTION assessment_line_unit_in_property();
 
 -- Dieselbe Invariante bei nachträglichen Verschiebungen (Einheit, Gebäude, Assessment); ohne Quota-Zeilen frei.
+-- Das UPDATE sperrt die eigene Zeile vor dem BEFORE-Trigger; wartet es dabei auf eine anlegende Zeile, liest
+-- die Abfrage im Trigger (READ COMMITTED: neuer Snapshot je Anweisung) die inzwischen festgeschriebene Zeile.
 CREATE FUNCTION unit_move_keeps_assessment_lines() RETURNS trigger AS $$
 BEGIN
   IF EXISTS (

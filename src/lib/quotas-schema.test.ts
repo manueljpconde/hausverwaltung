@@ -2,7 +2,8 @@ import { spawnSync } from "node:child_process";
 import { cpSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { afterEach, beforeEach, expect, it } from "vitest";
+import { PrismaClient } from "@prisma/client";
+import { afterAll, afterEach, beforeEach, expect, it } from "vitest";
 import { createTestTenant, describeDb, integrationDb as db } from "./test-db";
 
 // #52: Die Garantien liegen in der Datenbank, nicht nur in der Anwendung.
@@ -211,6 +212,97 @@ describeDb("Schema-Garantien (#52)", () => {
     const other = await db!.person.create({ data: { tenantId: t.tenantId, firstName: "Rui", lastName: "Teste" } });
     await expect(db!.owner.create({ data: { ...base, personId: other.id, validFrom: null } })).rejects.toThrow(/owner_confirmed_needs_valid_from/);
   });
+});
+
+// Zwei Verbindungen: Zeile anlegen und Einheit/Gebäude verschieben dürfen sich nicht überholen.
+describeDb("Quota-Zeile/Objekt-Invariante unter Nebenläufigkeit (#52)", () => {
+  const db2 = new PrismaClient({ datasources: { db: { url: process.env.INTEGRATION_DATABASE_URL } } });
+  const msg = /assessment line unit not in assessment property/;
+  const txOpts = { timeout: 15_000, maxWait: 5_000 };
+  let f: Awaited<ReturnType<typeof fixtures>> & { buildingId: string; assessmentId: string; p2: string; b2: string };
+
+  const gate = () => { let open!: () => void; const p = new Promise<void>((r) => (open = r)); return { p, open }; };
+  // true, wenn das Promise nach `ms` noch offen ist (= wartet auf eine Zeilensperre).
+  const blocked = async (p: Promise<unknown>, ms = 700) => {
+    let settled = false;
+    p.then(() => (settled = true), () => (settled = true));
+    await new Promise((r) => setTimeout(r, ms));
+    return !settled;
+  };
+  const crossPropertyLines = async () => {
+    const [{ n }] = await db!.$queryRaw<{ n: number }[]>`
+      SELECT count(*)::int AS n FROM "CondominiumAssessmentLine" l
+      JOIN "CondominiumAssessment" a ON a.id = l."assessmentId"
+      JOIN "Unit" u ON u.id = l."unitId" JOIN "Building" b ON b.id = u."buildingId"
+      WHERE l."tenantId" = ${t.tenantId} AND b."propertyId" <> a."propertyId"`;
+    return n;
+  };
+  const lockTimeout = (tx: { $executeRawUnsafe: (q: string) => Promise<number> }) => tx.$executeRawUnsafe(`SET LOCAL lock_timeout = '5s'`);
+  const insertLine = (client: PrismaClient, hold?: Promise<void>, started?: () => void) =>
+    client.$transaction(async (tx) => {
+      await lockTimeout(tx);
+      await tx.condominiumAssessmentLine.create({ data: { tenantId: t.tenantId, assessmentId: f.assessmentId, unitId: f.unitId, amountCents: 100 } });
+      started?.();
+      await hold;
+    }, txOpts);
+  const move = (client: PrismaClient, what: "building" | "unit", hold?: Promise<void>, started?: () => void) =>
+    client.$transaction(async (tx) => {
+      await lockTimeout(tx);
+      if (what === "building") await tx.building.update({ where: { id: f.buildingId }, data: { propertyId: f.p2 } });
+      else await tx.unit.update({ where: { id: f.unitId }, data: { buildingId: f.b2 } });
+      started?.();
+      await hold;
+    }, txOpts);
+
+  beforeEach(async () => {
+    t = await createTestTenant();
+    const base = await fixtures(t.tenantId);
+    const { buildingId } = await db!.unit.findUniqueOrThrow({ where: { id: base.unitId } });
+    const p2 = await db!.property.create({ data: { tenantId: t.tenantId, name: "P2", street: "S", zip: "1000-001", city: "Lisboa" } });
+    const b2 = await db!.building.create({ data: { tenantId: t.tenantId, propertyId: p2.id, name: "B2" } });
+    const a = await db!.condominiumAssessment.create({ data: { tenantId: t.tenantId, propertyId: base.propertyId, period: month, kind: "ORDINARY", method: "PERMILLAGE", dueDate: month, asOf: month, totalCents: 100 } });
+    f = { ...base, buildingId, assessmentId: a.id, p2: p2.id, b2: b2.id };
+  });
+  afterEach(async () => {
+    await t.cleanup();
+  });
+  afterAll(async () => {
+    await db2.$disconnect();
+  });
+
+  for (const what of ["building", "unit"] as const) {
+    it(`Zeile zuerst, dann ${what} verschieben: die Verschiebung wartet und scheitert`, async () => {
+      const hold = gate();
+      const inserted = gate();
+      const a = insertLine(db!, hold.p, inserted.open);
+      await inserted.p;
+      const b = move(db2, what);
+      const wasBlocked = await blocked(b);
+      hold.open();
+      const [ra, rb] = await Promise.allSettled([a, b]);
+      expect(await crossPropertyLines()).toBe(0);
+      expect(ra.status).toBe("fulfilled");
+      expect(rb.status).toBe("rejected");
+      expect(String((rb as PromiseRejectedResult).reason)).toMatch(msg);
+      expect(wasBlocked).toBe(true);
+    }, 30_000);
+  }
+
+  it("Gebäude zuerst verschieben, dann Zeile: die Zeile wartet und scheitert", async () => {
+    const hold = gate();
+    const moved = gate();
+    const b = move(db2, "building", hold.p, moved.open);
+    await moved.p;
+    const a = insertLine(db!);
+    const wasBlocked = await blocked(a);
+    hold.open();
+    const [ra, rb] = await Promise.allSettled([a, b]);
+    expect(await crossPropertyLines()).toBe(0);
+    expect(rb.status).toBe("fulfilled");
+    expect(ra.status).toBe("rejected");
+    expect(String((ra as PromiseRejectedResult).reason)).toMatch(msg);
+    expect(wasBlocked).toBe(true);
+  }, 30_000);
 });
 
 describeDb("Migration #52 bricht bei vorhandenen Finanzdaten ab", () => {
