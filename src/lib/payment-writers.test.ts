@@ -38,6 +38,8 @@ describe("Zahlungs-Schreiber (#52)", () => {
     expect(src).toMatch(/special: "payment"/);
     expect(src).toMatch(/special === "payment"[\s\S]*recordPayment/);
     expect(src).toMatch(/deletePaymentWithAllocations/);
+    // #52 R2: USE_REFUND_AND_CANCEL wird wie PaymentError als Client-Fehler gemeldet, nicht als 500.
+    expect(src).toMatch(/special === "payment"[\s\S]*?e instanceof QuotaError && e\.code === "USE_REFUND_AND_CANCEL"/);
   });
 
   it("camt-Import überspringt Nullbeträge vor dem Abgleich/Buchen (Fix-Runde 1)", () => {

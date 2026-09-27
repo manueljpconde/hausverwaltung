@@ -3,6 +3,8 @@ type Decimalish = number | string | { toString(): string };
 const num = (v: Decimalish) => Number(typeof v === "number" ? v : v.toString());
 const cents = (v: number) => Math.round(v * 100) / 100;
 
+export const MONEY_EPSILON = 0.005; // einzige Toleranz für offen/beglichen (#52 R2)
+
 export const ALLOCATIONS_FOR_BALANCE = { select: { amount: true, payment: { select: { direction: true } } } } as const;
 
 export type BalanceInput = {

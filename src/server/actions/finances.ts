@@ -21,6 +21,7 @@ import { saveFile } from "@/lib/storage";
 import { money } from "@/lib/format";
 import { dunningDocument } from "@/lib/dunning";
 import { chargeHasHistory, deletePaymentWithAllocations, matchOpenCharge, openChargesForMatching, PaymentError, recordPayment, unappliedPart } from "@/lib/payments";
+import { QuotaError } from "@/lib/quotas/errors";
 import { ALLOCATIONS_FOR_BALANCE, chargeBalance, chargeLease, chargeSubject } from "@/lib/charges";
 
 // Standard-Kontenrahmen für den Mandanten anlegen (idempotent).
@@ -98,6 +99,7 @@ export async function createPayment(_p: ActionState, fd: FormData): Promise<Acti
     res = await recordPayment({ ...r.data, tenantId: user.tenantId });
   } catch (e) {
     if (e instanceof PaymentError) return fail(e.message);
+    if (e instanceof QuotaError && e.code === "USE_REFUND_AND_CANCEL") return fail("Rückzahlung würde den Zahlungseingang auf 0 bringen — bitte „Erstatten und stornieren“ verwenden");
     throw e;
   }
   // Überzahlung: gebucht, aber nur bis zum offenen Betrag zugeordnet — dem Nutzer sagen, was übrig bleibt.

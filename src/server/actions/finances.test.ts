@@ -45,6 +45,15 @@ describe("createPayment: Überzahlung meldet den Rest (#52 fix)", () => {
     expect(r).toEqual({ ok: true });
     expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
   });
+
+  it("Rückzahlung auf 0 (USE_REFUND_AND_CANCEL): Fehlermeldung statt Ausnahme (#52 R2)", async () => {
+    const { QuotaError } = await import("@/lib/quotas/errors");
+    vi.mocked(recordPayment).mockRejectedValue(new QuotaError("USE_REFUND_AND_CANCEL"));
+    const r = await createPayment({}, form({ amount: "300", chargeId: "c1", direction: "AUSGANG", date: "2026-09-26" }));
+    expect(r.ok).toBeFalsy();
+    expect(r.error).toMatch(/Erstatten und stornieren/);
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
 });
 
 describe("CrudDialog zeigt die Erfolgsmeldung der Server-Action (#52 fix)", () => {

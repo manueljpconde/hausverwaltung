@@ -4,6 +4,7 @@ import { roleAllows, WRITE_ROLES, assignableRoles, canDeleteUser, type SessionUs
 import type { ApiPrincipal } from "@/lib/api-auth";
 import * as S from "@/lib/schemas";
 import { chargeHasHistory, deletePaymentWithAllocations, PaymentError, recordPayment } from "@/lib/payments";
+import { QuotaError } from "@/lib/quotas/errors";
 
 // Generische, mandanten-gescopte Schreibschicht für REST-API + MCP.
 // Nutzt dieselben zod-Schemas wie die Server Actions (Feld-Whitelist, Enums,
@@ -153,6 +154,7 @@ export async function apiCreate(p: ApiPrincipal, entity: string, body: Record<st
       return db.payment.findUniqueOrThrow({ where: { id: r.paymentId }, include: { allocations: true } });
     } catch (e) {
       if (e instanceof PaymentError) throw new ApiWriteError(e.message, 400);
+      if (e instanceof QuotaError && e.code === "USE_REFUND_AND_CANCEL") throw new ApiWriteError("Rückzahlung würde den Zahlungseingang auf 0 bringen — bitte „Erstatten und stornieren“ verwenden", 400);
       throw e;
     }
   }

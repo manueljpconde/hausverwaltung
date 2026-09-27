@@ -1,6 +1,8 @@
+import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, expect, it } from "vitest";
 import { createTestTenant, describeDb, integrationDb as db } from "./test-db";
-import { chargeHasHistory, deletePaymentWithAllocations, openChargesForMatching, PaymentError, recordPayment } from "./payments";
+import { chargeHasHistory, deletePaymentWithAllocations, openChargesForMatching, PaymentError, recordPayment, recordPaymentInTx } from "./payments";
+import { QuotaError } from "./quotas/errors";
 
 let t: Awaited<ReturnType<typeof createTestTenant>>;
 let chargeId: string;
@@ -34,11 +36,79 @@ describeDb("recordPayment (#52)", () => {
     expect(Number(p.amount)).toBe(300);
   });
 
-  it("Rückzahlung (AUSGANG) höchstens bis zum Nettoeingang", async () => {
+  it("Rückzahlung (AUSGANG) unter dem Nettoeingang wird zugeordnet; eine, die ihn auf 0 brächte, wird abgelehnt", async () => {
     await pay(200);
-    const r = await pay(500, { direction: "AUSGANG" });
-    expect(r.allocated).toBe(200);
-    expect(await openChargesForMatching(t.tenantId, db!)).toEqual([{ id: chargeId, open: 500 }]);
+    const r = await pay(150, { direction: "AUSGANG" });
+    expect(r.allocated).toBe(150);
+    expect(await openChargesForMatching(t.tenantId, db!)).toEqual([{ id: chargeId, open: 450 }]);
+    await expect(pay(500, { direction: "AUSGANG" })).rejects.toMatchObject({ code: "USE_REFUND_AND_CANCEL" });
+    expect(await openChargesForMatching(t.tenantId, db!)).toEqual([{ id: chargeId, open: 450 }]);
+  });
+
+  it("Teilrückzahlung erlaubt; Rückzahlung, die den Nettoeingang auf 0 brächte, wird ohne Schreiben abgelehnt", async () => {
+    await pay(300);
+    await expect(pay(100, { direction: "AUSGANG" })).resolves.toMatchObject({ allocated: 100 });
+    const before = await db!.payment.count({ where: { tenantId: t.tenantId } });
+    await expect(pay(200, { direction: "AUSGANG" })).rejects.toMatchObject({ code: "USE_REFUND_AND_CANCEL" });
+    expect(await db!.payment.count({ where: { tenantId: t.tenantId } })).toBe(before);
+  });
+
+  it("parallel: zwei Rückzahlungen, die zusammen auf 0 kämen — höchstens eine wird angenommen", async () => {
+    await pay(200);
+    const r = await Promise.allSettled([pay(100, { direction: "AUSGANG" }), pay(100, { direction: "AUSGANG" })]);
+    expect(r.filter((x) => x.status === "fulfilled")).toHaveLength(1);
+    const rejected = r.filter((x): x is PromiseRejectedResult => x.status === "rejected");
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0].reason).toMatchObject({ code: "USE_REFUND_AND_CANCEL" });
+  });
+
+  it("recordPaymentInTx schreibt keine abgelehnte Rückzahlung, auch wenn der Aufrufer den Fehler fängt und committet", async () => {
+    await pay(200);
+    const before = await db!.payment.count({ where: { tenantId: t.tenantId } });
+    const caught = await db!.$transaction(async (tx) => {
+      try {
+        await recordPaymentInTx(tx, { tenantId: t.tenantId, chargeId, date: day, amount: 200, direction: "AUSGANG" });
+        return null;
+      } catch (e) {
+        if (e instanceof QuotaError) return e.code;
+        throw e;
+      }
+    });
+    expect(caught).toBe("USE_REFUND_AND_CANCEL");
+    expect(await db!.payment.count({ where: { tenantId: t.tenantId } })).toBe(before);
+  });
+
+  it("Löschen eines Eingangs, das die Sollstellung mit Rückzahlungen auf Nettoeingang 0 brächte, wird ohne Schreiben verweigert", async () => {
+    const big = await pay(200);
+    await pay(100);
+    const refund = await pay(100, { direction: "AUSGANG" });
+    const payments = await db!.payment.count({ where: { tenantId: t.tenantId } });
+    const allocations = await db!.paymentAllocation.count({ where: { tenantId: t.tenantId } });
+    await expect(deletePaymentWithAllocations(t.tenantId, big.paymentId, db!)).rejects.toThrow(/vollständig erstattet/);
+    expect(await db!.payment.count({ where: { tenantId: t.tenantId } })).toBe(payments);
+    expect(await db!.paymentAllocation.count({ where: { tenantId: t.tenantId } })).toBe(allocations);
+    // Die Rückzahlung selbst zu löschen erhöht den Nettoeingang — erlaubt.
+    expect(await deletePaymentWithAllocations(t.tenantId, refund.paymentId, db!)).toBe(1);
+  });
+
+  it("Löschen eines einzelnen Eingangs ohne Rückzahlungen bleibt erlaubt (Korrektur, keine Erstattung)", async () => {
+    const r = await pay(200);
+    expect(await deletePaymentWithAllocations(t.tenantId, r.paymentId, db!)).toBe(1);
+    expect(await db!.paymentAllocation.count({ where: { tenantId: t.tenantId } })).toBe(0);
+  });
+
+  it("Zahlungen einer stornierten Sollstellung sind unveränderlich: Löschen (Eingang oder Rückzahlung) verweigert", async () => {
+    const inn = await pay(200);
+    const out = await pay(50, { direction: "AUSGANG" });
+    await db!.charge.update({ where: { id: chargeId }, data: { status: "CANCELLED", cancelledAt: new Date(), cancelReason: "teste" } });
+    await expect(deletePaymentWithAllocations(t.tenantId, out.paymentId, db!)).rejects.toThrow(PaymentError);
+    await expect(deletePaymentWithAllocations(t.tenantId, inn.paymentId, db!)).rejects.toThrow(PaymentError);
+    expect(await db!.paymentAllocation.count({ where: { chargeId } })).toBe(2);
+  });
+
+  it("kein exportierter Weg zum Nullstellen: recordPaymentInTx kennt keinen Umgehungs-Parameter", () => {
+    const src = readFileSync("src/lib/payments.ts", "utf8");
+    expect(src).not.toMatch(/allowZeroing|allowZero|zeroing/i);
   });
 
   it("parallele Zahlungen überschreiten den offenen Betrag nie (Lock)", async () => {
@@ -91,9 +161,19 @@ describeDb("recordPayment (#52)", () => {
     expect(await db!.paymentAllocation.count({ where: { tenantId: t.tenantId } })).toBe(2);
   });
 
-  it("Löschen ist trotz Fließkomma-Rundung erlaubt, wenn das Ergebnis gültig bleibt", async () => {
+  it("Fließkomma-Rundung: Löschen, das die Sollstellung vollständig erstattet ließe, wird verweigert", async () => {
     await pay(0.1);
     const b = await pay(0.2);
+    await pay(0.1, { direction: "AUSGANG" });
+    await expect(deletePaymentWithAllocations(t.tenantId, b.paymentId, db!)).rejects.toThrow(/vollständig erstattet/);
+    const err = await deletePaymentWithAllocations(t.tenantId, b.paymentId, db!).catch((e) => e);
+    expect(String(err.message)).not.toMatch(/übersteigen/);
+    expect(await db!.paymentAllocation.count({ where: { tenantId: t.tenantId } })).toBe(3);
+  });
+
+  it("Grenze: Restnetto 0,01 bleibt löschbar", async () => {
+    const b = await pay(0.2);
+    await pay(0.11);
     await pay(0.1, { direction: "AUSGANG" });
     expect(await deletePaymentWithAllocations(t.tenantId, b.paymentId, db!)).toBe(1);
     expect(await db!.paymentAllocation.count({ where: { tenantId: t.tenantId } })).toBe(2);
