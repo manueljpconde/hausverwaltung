@@ -22,6 +22,17 @@ export const issueInputSchema = z.discriminatedUnion("kind", [
 ]).superRefine(withCustomRule);
 export type ParsedIssueInput = z.infer<typeof issueInputSchema>;
 
+// Stornierungs-/Änderungsgrund: getrimmt, nie leer (DB-CHECK auf cancelReason).
+export const reasonSchema = z.string().trim().min(3).max(500);
+
+// refundAndCancel: Konto optional, aber nie leer; leere Referenz wird null.
+export const refundInputSchema = z.strictObject({
+  accountId: id.nullish(),
+  date,
+  reference: z.string().trim().max(140).nullish().transform((v) => v || null),
+  reason: reasonSchema,
+});
+
 export function parseOrThrow<T>(schema: z.ZodType<T>, value: unknown): T {
   const r = schema.safeParse(value);
   if (!r.success) throw new QuotaError("INVALID_INPUT", undefined, r.error.issues);

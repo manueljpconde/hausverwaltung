@@ -38,3 +38,23 @@ export async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<
 export async function lockPlanShared(tx: Prisma.TransactionClient, tenantId: string, propertyId: string, year: number) {
   await tx.$executeRaw`SELECT pg_advisory_xact_lock_shared(plan_lock_key(${tenantId}, ${propertyId}, ${year}::int))`;
 }
+
+// #52 R2: Sperrreihenfolge Schritt 1 — Assessment der Mandantin, FOR UPDATE.
+export async function lockAssessment(tx: Prisma.TransactionClient, tenantId: string, id: string) {
+  const rows = await tx.$queryRaw<{ id: string; status: "ISSUED" | "CANCELLED"; kind: "ORDINARY" | "EXTRAORDINARY"; totalCents: number; propertyId: string; period: Date }[]>`
+    SELECT id, status::text, kind::text, "totalCents", "propertyId", period FROM "CondominiumAssessment" WHERE id = ${id} AND "tenantId" = ${tenantId} FOR UPDATE`;
+  if (rows.length === 0) throw new QuotaError("NOT_FOUND", "assessment");
+  return rows[0];
+}
+
+// Schritt 2 — Sollstellungen nach id aufsteigend.
+export async function lockChargesOrdered(tx: Prisma.TransactionClient, tenantId: string, ids: string[]) {
+  if (ids.length === 0) return;
+  await tx.$queryRaw`SELECT id FROM "Charge" WHERE id IN (${Prisma.join(ids)}) AND "tenantId" = ${tenantId} ORDER BY id FOR UPDATE`;
+}
+
+// Kanonischer Gesamtstatus: CANCELLED genau dann, wenn keine Sollstellung mehr ISSUED ist (unter der Assessment-Sperre aufrufen).
+export async function recomputeAssessmentStatusInTx(tx: Prisma.TransactionClient, tenantId: string, assessmentId: string) {
+  const issued = await tx.charge.count({ where: { tenantId, status: "ISSUED", quotaDebtorSnapshot: { line: { assessmentId } } } });
+  await tx.condominiumAssessment.update({ where: { id_tenantId: { id: assessmentId, tenantId } }, data: { status: issued === 0 ? "CANCELLED" : "ISSUED" } });
+}
