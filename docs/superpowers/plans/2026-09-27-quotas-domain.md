@@ -851,7 +851,7 @@ describeDb("Entrada inválida nunca vira outra operação (#52 R2)", () => {
 describeDb("Emissão × plano em concorrência, com gates (#52 R2)", () => {
   let dbA: PrismaClient, dbB: PrismaClient, dbC: PrismaClient;
   beforeEach(async () => {
-    dbA = clientFor("r2_a"); dbB = clientFor("r2_b"); dbC = clientFor("r2_c");
+    dbA = clientFor("r2_issue_a"); dbB = clientFor("r2_issue_b"); dbC = clientFor("r2_issue_c");
     t = await createTestTenant(); fx = await wegFixture(db!, t.tenantId);
   });
   afterEach(async () => { await t.cleanup(); await Promise.all([dbA.$disconnect(), dbB.$disconnect(), dbC.$disconnect()]); });
@@ -865,7 +865,7 @@ describeDb("Emissão × plano em concorrência, com gates (#52 R2)", () => {
     }, { timeout: 20000 });
     await locked.promise;
     const issuing = issueQuotas(ctx(), may(), dbB);
-    await waitUntilBlocked(db!, "r2_b");
+    await waitUntilBlocked(db!, "r2_issue_b");
     expect(await isPending(issuing)).toBe(true);
     gate.resolve(); await edit;
     const r = await issuing;
@@ -880,7 +880,7 @@ describeDb("Emissão × plano em concorrência, com gates (#52 R2)", () => {
     }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead, timeout: 20000 });
     await locked.promise;
     const edit = dbB.economicPlan.update({ where: { id: fx.plan.id }, data: { totalAmount: 2400 } });
-    await waitUntilBlocked(db!, "r2_b");
+    await waitUntilBlocked(db!, "r2_issue_b");
     expect(await isPending(edit)).toBe(true);
     gate.resolve(); await issuing;
     await expect(edit).rejects.toThrow(/plan locked by issued ordinary assessments/);
@@ -898,11 +898,18 @@ describeDb("Emissão × plano em concorrência, com gates (#52 R2)", () => {
     await locked.promise;
     const edit = dbB.economicPlan.update({ where: { id: fx.plan.id }, data: { totalAmount: 2400 } });
     await waitUntilBlocked(db!, "r2_issue_b");
-    const issuing = issueQuotas(ctx(), may(), dbA);
+    // Erster Versuch OHNE withRetry: nur so ist beobachtbar, ob die Emission 40001 (erwartet) oder 40P01 (Deadlock) erleidet.
+    const first = dbA.$transaction((tx) => issueQuotasInTx(tx, ctx(), may()), { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead, timeout: 20000 });
+    const firstError = first.then(() => null, (e: unknown) => String((e as { message?: string })?.message ?? e));
     await waitUntilBlocked(db!, "r2_issue_a");
+    expect(await isPending(first)).toBe(true);
     gate.resolve(); await holder;
-    await edit;
-    const r = await issuing; // 40001 → Retry → neuer Plan; nie 40P01
+    await edit; // Planänderung abgeschlossen
+    const msg = await firstError;
+    expect(msg).toMatch(/40001|could not serialize/i);
+    expect(msg).not.toMatch(/40P01|deadlock/i);
+    // zweiter, expliziter Versuch nutzt den neuen Plan
+    const r = await issueQuotas(ctx(), may(), dbA);
     expect((await db!.condominiumAssessment.findUniqueOrThrow({ where: { id: r.assessmentId } })).totalCents).toBe(20000);
   }, 30000);
 
@@ -918,7 +925,7 @@ describeDb("Emissão × plano em concorrência, com gates (#52 R2)", () => {
     await locked.promise;
     const moveX = dbA.economicPlan.update({ where: { id: fx.plan.id }, data: { year: 2027 } });
     const moveY = dbB.economicPlan.update({ where: { id: y.id }, data: { year: 2026 } });
-    await waitUntilBlocked(db!, "r2_a"); await waitUntilBlocked(db!, "r2_b");
+    await waitUntilBlocked(db!, "r2_issue_a"); await waitUntilBlocked(db!, "r2_issue_b");
     gate.resolve(); await holder;
     const results = await Promise.allSettled([moveX, moveY]);
     for (const r of results) if (r.status === "rejected") expect(String(r.reason)).not.toMatch(/deadlock|40P01/i);
@@ -963,7 +970,7 @@ describeDb("Emissão × plano em concorrência, com gates (#52 R2)", () => {
     await locked.promise;
     const asOf = new Date(Date.UTC(2026, 6, 1));
     const issuing = issueQuotas(ctx(), { propertyId: fx.property.id, kind: "EXTRAORDINARY", month: "2026-07", totalCents: 50000, asOf, dueDate: asOf, description: "Obras", resolutionId: res.id }, dbB);
-    await waitUntilBlocked(db!, "r2_b");
+    await waitUntilBlocked(db!, "r2_issue_b");
     expect(await isPending(issuing)).toBe(true);
     gate.resolve(); await move;
     await expect(issuing).rejects.toMatchObject({ code: "INVALID_INPUT" });
@@ -981,7 +988,7 @@ describeDb("Emissão × plano em concorrência, com gates (#52 R2)", () => {
     }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead, timeout: 20000 });
     await locked.promise;
     const move = dbB.resolution.update({ where: { id: res.id }, data: { propertyId: sibling.id } });
-    await waitUntilBlocked(db!, "r2_b");
+    await waitUntilBlocked(db!, "r2_issue_b");
     expect(await isPending(move)).toBe(true);
     gate.resolve(); await issuing;
     await expect(move).rejects.toThrow(/assessment resolution not in assessment property/);
@@ -1383,7 +1390,7 @@ describeDb("Ciclo de vida (#52 R2)", () => {
 
 describeDb("Ciclo de vida em concorrência, com gates (#52 R2)", () => {
   let dbA: PrismaClient, dbB: PrismaClient;
-  beforeEach(async () => { dbA = clientFor("r2_a"); dbB = clientFor("r2_b"); t = await createTestTenant(); fx = await wegFixture(db!, t.tenantId); });
+  beforeEach(async () => { dbA = clientFor("r2_life_a"); dbB = clientFor("r2_life_b"); t = await createTestTenant(); fx = await wegFixture(db!, t.tenantId); });
   afterEach(async () => { await t.cleanup(); await Promise.all([dbA.$disconnect(), dbB.$disconnect()]); });
   const RC = { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, timeout: 20000 };
 
@@ -1394,7 +1401,7 @@ describeDb("Ciclo de vida em concorrência, com gates (#52 R2)", () => {
     const a = dbA.$transaction(async (tx) => { const r = await first(tx); locked.resolve(); await gate.promise; return r; }, RC);
     await locked.promise;
     const b = second();
-    await waitUntilBlocked(db!, "r2_b");
+    await waitUntilBlocked(db!, "r2_life_b");
     expect(await isPending(b)).toBe(true);
     gate.resolve();
     return Promise.allSettled([a, b]);
