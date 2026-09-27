@@ -352,9 +352,9 @@ model Owner {
   id       String  @id @default(cuid())
   tenantId String
   personId String
-  person   Person  @relation(fields: [personId], references: [id], onDelete: Cascade)
+  person   Person  @relation(fields: [personId, tenantId], references: [id, tenantId], onDelete: Cascade)
   unitId   String
-  unit     Unit    @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  unit     Unit    @relation(fields: [unitId, tenantId], references: [id, tenantId], onDelete: Cascade)
   share    Int     @default(1000) // Anteil an der Einheit (Tausendstel)
   validFrom DateTime?
   validTo   DateTime?
@@ -458,7 +458,8 @@ model Deposit {
   type         DepositType
   amount       Decimal     @db.Decimal(10, 2)
   accountId    String? // Kautionskonto
-  account      Account?    @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  // SetNull wirkt in der Migration nur auf accountId (ON DELETE SET NULL ("accountId")); Prisma-Warnung zu tenantId ist erwartet.
+  account      Account?    @relation(fields: [accountId, tenantId], references: [id, tenantId], onDelete: SetNull)
   interestRate Decimal?    @db.Decimal(5, 2) // Verzinsung % p.a.
   receivedDate DateTime?
   returnedDate DateTime?
@@ -487,6 +488,7 @@ model Account {
   bankLinks BankLink[]
   createdAt DateTime    @default(now())
 
+  @@unique([id, tenantId])
   @@index([tenantId])
 }
 
@@ -512,7 +514,7 @@ model BankLink {
   connectorId       String
   connector         BankConnector @relation(fields: [connectorId], references: [id], onDelete: Cascade)
   accountId         String
-  account           Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  account           Account       @relation(fields: [accountId, tenantId], references: [id, tenantId], onDelete: Cascade)
   aspspName         String
   aspspCountry      String
   sessionId         String
@@ -580,7 +582,8 @@ model Payment {
   id        String           @id @default(cuid())
   tenantId  String
   accountId String?
-  account   Account?         @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  // SetNull wirkt in der Migration nur auf accountId (ON DELETE SET NULL ("accountId")); Prisma-Warnung zu tenantId ist erwartet.
+  account   Account?         @relation(fields: [accountId, tenantId], references: [id, tenantId], onDelete: SetNull)
   date      DateTime
   amount    Decimal          @db.Decimal(10, 2)
   direction PaymentDirection @default(EINGANG)
@@ -614,7 +617,7 @@ model DunningNotice {
   id       String   @id @default(cuid())
   tenantId String
   chargeId String
-  charge   Charge   @relation(fields: [chargeId], references: [id], onDelete: Cascade)
+  charge   Charge   @relation(fields: [chargeId, tenantId], references: [id, tenantId], onDelete: Restrict)
   level    Int      @default(1)
   date     DateTime @default(now())
   fee      Decimal  @default(0) @db.Decimal(10, 2)

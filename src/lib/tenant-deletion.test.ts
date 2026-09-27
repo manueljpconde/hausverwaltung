@@ -14,7 +14,8 @@ describeDb("Mandant löschen (#52)", () => {
     const d = new Date("2026-09-01");
     const charge = await db!.charge.create({ data: { tenantId, leaseId: lease.id, type: "MIETE", period: d, dueDate: d, amount: 500 } });
     await recordPayment({ tenantId, chargeId: charge.id, date: d, amount: 200, direction: "EINGANG" }, db!);
-    await recordPayment({ tenantId, date: d, amount: 20, direction: "AUSGANG" }, db!);
+    const account = await db!.account.create({ data: { tenantId, name: "Konto" } });
+    await recordPayment({ tenantId, accountId: account.id, date: d, amount: 20, direction: "AUSGANG" }, db!);
     await db!.dunningNotice.create({ data: { tenantId, chargeId: charge.id, level: 1 } });
     // vollständige Quota-Kette mit Zahlung
     const person = await db!.person.create({ data: { tenantId, firstName: "Ana", lastName: "Teste" } });
@@ -32,7 +33,8 @@ describeDb("Mandant löschen (#52)", () => {
       db!.dunningNotice.count({ where: { tenantId } }), db!.condominiumAssessment.count({ where: { tenantId } }),
       db!.condominiumAssessmentLine.count({ where: { tenantId } }), db!.quotaDebtorSnapshot.count({ where: { tenantId } }),
       db!.person.count({ where: { tenantId } }), db!.lease.count({ where: { tenantId } }), db!.unit.count({ where: { tenantId } }),
+      db!.account.count({ where: { tenantId } }),
     ]);
-    expect(counts).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    expect(counts).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
   });
 });

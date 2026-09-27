@@ -19,6 +19,7 @@ export async function createTestTenant() {
         db.paymentAllocation.deleteMany(where),
         db.dunningNotice.deleteMany(where),
         db.payment.deleteMany(where),
+        db.account.deleteMany(where),
         db.charge.deleteMany(where),
         db.quotaDebtorSnapshot.deleteMany(where),
         db.condominiumAssessmentLine.deleteMany(where),

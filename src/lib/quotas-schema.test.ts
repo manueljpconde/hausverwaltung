@@ -114,6 +114,52 @@ describeDb("Schema-Garantien (#52)", () => {
     }
   });
 
+  it("Konten, Eigentümer und Mahnungen sind mandantensicher: A darf nicht auf Konto, Person, Einheit oder Sollstellung von B zeigen", async () => {
+    const other = await createTestTenant();
+    try {
+      const b = await fixtures(other.tenantId);
+      const accountB = await db!.account.create({ data: { tenantId: other.tenantId, name: "Konto B" } });
+      await expect(db!.payment.create({ data: { tenantId: t.tenantId, accountId: accountB.id, date: month, amount: 10 } })).rejects.toThrow(/Payment_accountId_tenantId_fkey/);
+      await expect(db!.deposit.create({ data: { tenantId: t.tenantId, leaseId, type: "BAR", amount: 100, accountId: accountB.id } })).rejects.toThrow(/Deposit_accountId_tenantId_fkey/);
+      const connector = await db!.bankConnector.create({ data: { tenantId: t.tenantId, applicationId: "app", privateKeyEnc: "x" } });
+      await expect(db!.bankLink.create({ data: { tenantId: t.tenantId, connectorId: connector.id, accountId: accountB.id, aspspName: "N", aspspCountry: "PT", sessionId: "s", accountUid: "u" } })).rejects.toThrow(/BankLink_accountId_tenantId_fkey/);
+      const owner = { tenantId: t.tenantId, share: 1000, vigencia: "CONFIRMED" as const, validFrom: month };
+      await expect(db!.owner.create({ data: { ...owner, unitId, personId: b.personId } })).rejects.toThrow(/Owner_personId_tenantId_fkey/);
+      await expect(db!.owner.create({ data: { ...owner, unitId: b.unitId, personId } })).rejects.toThrow(/Owner_unitId_tenantId_fkey/);
+      const chargeB = await db!.charge.create({ data: { tenantId: other.tenantId, leaseId: b.leaseId, type: "MIETE", period: month, dueDate: month, amount: 1 } });
+      await expect(db!.dunningNotice.create({ data: { tenantId: t.tenantId, chargeId: chargeB.id, level: 1 } })).rejects.toThrow(/DunningNotice_chargeId_tenantId_fkey/);
+    } finally {
+      await other.cleanup();
+    }
+  });
+
+  it("Konto löschen setzt nur Payment.accountId auf NULL, tenantId bleibt", async () => {
+    const account = await db!.account.create({ data: { tenantId: t.tenantId, name: "Konto" } });
+    const payment = await db!.payment.create({ data: { tenantId: t.tenantId, accountId: account.id, date: month, amount: 10 } });
+    await db!.account.delete({ where: { id: account.id } });
+    const row = await db!.payment.findUniqueOrThrow({ where: { id: payment.id } });
+    expect(row.accountId).toBeNull();
+    expect(row.tenantId).toBe(t.tenantId);
+  });
+
+  it("Sollstellung mit Mahnung lässt sich nicht direkt löschen (Restrict statt Cascade)", async () => {
+    const charge = await db!.charge.create({ data: rent() });
+    await db!.dunningNotice.create({ data: { tenantId: t.tenantId, chargeId: charge.id, level: 1 } });
+    await expect(db!.charge.delete({ where: { id: charge.id } })).rejects.toThrow(/DunningNotice_chargeId_tenantId_fkey/);
+    expect(await db!.dunningNotice.count({ where: { chargeId: charge.id } })).toBe(1);
+  });
+
+  it("Quota-Zeile: Einheit muss zum Objekt des Assessments gehören", async () => {
+    const p2 = await db!.property.create({ data: { tenantId: t.tenantId, name: "P2", street: "S", zip: "1000-001", city: "Lisboa" } });
+    const b2 = await db!.building.create({ data: { tenantId: t.tenantId, propertyId: p2.id, name: "B2" } });
+    const u2 = await db!.unit.create({ data: { tenantId: t.tenantId, buildingId: b2.id, label: "Z", area: 40 } });
+    const assessment = await db!.condominiumAssessment.create({ data: { tenantId: t.tenantId, propertyId, period: month, kind: "ORDINARY", method: "PERMILLAGE", dueDate: month, asOf: month, totalCents: 100 } });
+    const line = { tenantId: t.tenantId, assessmentId: assessment.id, amountCents: 100 };
+    await expect(db!.condominiumAssessmentLine.create({ data: { ...line, unitId: u2.id } })).rejects.toThrow(/assessment line unit not in assessment property/);
+    const ok = await db!.condominiumAssessmentLine.create({ data: { ...line, unitId } });
+    await expect(db!.condominiumAssessmentLine.update({ where: { id: ok.id }, data: { unitId: u2.id } })).rejects.toThrow(/assessment line unit not in assessment property/);
+  });
+
   it("neuer Eigentümer ohne Angabe ist CONFIRMED und braucht deshalb validFrom (DB-Default)", async () => {
     await expect(db!.owner.create({ data: { tenantId: t.tenantId, unitId, personId, share: 1000 } })).rejects.toThrow(/owner_confirmed_needs_valid_from/);
   });

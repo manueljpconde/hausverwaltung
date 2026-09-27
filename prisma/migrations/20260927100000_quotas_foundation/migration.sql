@@ -127,3 +127,43 @@ ALTER TABLE "PaymentAllocation" ADD CONSTRAINT "PaymentAllocation_paymentId_tena
   FOREIGN KEY ("paymentId", "tenantId") REFERENCES "Payment"("id", "tenantId") ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE "PaymentAllocation" ADD CONSTRAINT "PaymentAllocation_chargeId_tenantId_fkey"
   FOREIGN KEY ("chargeId", "tenantId") REFERENCES "Charge"("id", "tenantId") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- Konten, Eigentümer, Mahnungen: zusammengesetzte FKs (x, tenantId) → (id, tenantId).
+-- SET NULL nur auf accountId (PostgreSQL 15+): tenantId ist NOT NULL und bleibt erhalten.
+CREATE UNIQUE INDEX "Account_id_tenantId_key" ON "Account"("id", "tenantId");
+ALTER TABLE "Payment" DROP CONSTRAINT "Payment_accountId_fkey";
+ALTER TABLE "Payment" ADD CONSTRAINT "Payment_accountId_tenantId_fkey"
+  FOREIGN KEY ("accountId", "tenantId") REFERENCES "Account"("id", "tenantId") ON DELETE SET NULL ("accountId") ON UPDATE CASCADE;
+ALTER TABLE "Deposit" DROP CONSTRAINT "Deposit_accountId_fkey";
+ALTER TABLE "Deposit" ADD CONSTRAINT "Deposit_accountId_tenantId_fkey"
+  FOREIGN KEY ("accountId", "tenantId") REFERENCES "Account"("id", "tenantId") ON DELETE SET NULL ("accountId") ON UPDATE CASCADE;
+ALTER TABLE "BankLink" DROP CONSTRAINT "BankLink_accountId_fkey";
+ALTER TABLE "BankLink" ADD CONSTRAINT "BankLink_accountId_tenantId_fkey"
+  FOREIGN KEY ("accountId", "tenantId") REFERENCES "Account"("id", "tenantId") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Owner" DROP CONSTRAINT "Owner_personId_fkey";
+ALTER TABLE "Owner" ADD CONSTRAINT "Owner_personId_tenantId_fkey"
+  FOREIGN KEY ("personId", "tenantId") REFERENCES "Person"("id", "tenantId") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Owner" DROP CONSTRAINT "Owner_unitId_fkey";
+ALTER TABLE "Owner" ADD CONSTRAINT "Owner_unitId_tenantId_fkey"
+  FOREIGN KEY ("unitId", "tenantId") REFERENCES "Unit"("id", "tenantId") ON DELETE CASCADE ON UPDATE CASCADE;
+-- Restrict statt Cascade: eine Sollstellung mit Mahnung verschwindet nicht still.
+ALTER TABLE "DunningNotice" DROP CONSTRAINT "DunningNotice_chargeId_fkey";
+ALTER TABLE "DunningNotice" ADD CONSTRAINT "DunningNotice_chargeId_tenantId_fkey"
+  FOREIGN KEY ("chargeId", "tenantId") REFERENCES "Charge"("id", "tenantId") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- Quota-Zeile: die Einheit muss im Objekt des Assessments liegen (Unit → Building → Property).
+-- Fehlt Einheit oder Assessment im Mandanten, greift die zusammengesetzte FK mit ihrem eigenen Namen.
+CREATE FUNCTION assessment_line_unit_in_property() RETURNS trigger AS $$
+DECLARE unit_property TEXT; assessment_property TEXT;
+BEGIN
+  SELECT b."propertyId" INTO unit_property FROM "Unit" u JOIN "Building" b ON b.id = u."buildingId"
+    WHERE u.id = NEW."unitId" AND u."tenantId" = NEW."tenantId";
+  SELECT a."propertyId" INTO assessment_property FROM "CondominiumAssessment" a
+    WHERE a.id = NEW."assessmentId" AND a."tenantId" = NEW."tenantId";
+  IF unit_property IS DISTINCT FROM assessment_property AND unit_property IS NOT NULL AND assessment_property IS NOT NULL THEN
+    RAISE EXCEPTION 'assessment line unit not in assessment property';
+  END IF;
+  RETURN NEW;
+END $$ LANGUAGE plpgsql;
+CREATE TRIGGER assessment_line_unit_in_property BEFORE INSERT OR UPDATE ON "CondominiumAssessmentLine"
+  FOR EACH ROW EXECUTE FUNCTION assessment_line_unit_in_property();

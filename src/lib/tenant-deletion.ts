@@ -7,6 +7,7 @@ export async function deleteTenantData(tenantId: string, db: PrismaClient = pris
     db.paymentAllocation.deleteMany({ where: { tenantId } }),
     db.dunningNotice.deleteMany({ where: { tenantId } }),
     db.payment.deleteMany({ where: { tenantId } }),
+    db.account.deleteMany({ where: { tenantId } }), // BankLink kaskadiert, Deposit.accountId → NULL
     db.charge.deleteMany({ where: { tenantId } }),
     db.quotaDebtorSnapshot.deleteMany({ where: { tenantId } }),
     db.condominiumAssessmentLine.deleteMany({ where: { tenantId } }),
